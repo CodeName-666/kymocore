@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+ * Copyright (c) 2026 Christof Seidel */
 #include "kymo_runtime.h"
 #if KYMO_ENABLE_RUNTIME
 #include <string.h>
