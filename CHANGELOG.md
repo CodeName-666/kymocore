@@ -1,5 +1,12 @@
 # Changelog
 
+## 6.2.1
+
+- README als Übersicht mit Logo, Screenshot, Einsatzgebieten und Schnellstart.
+- Ausführliche Anleitung und API-Referenz in `docs/ANLEITUNG.md` (im Paket enthalten).
+- Diagramme mit den Namen KymoCore/KymoStudio neu erzeugt.
+- Keine Änderung an Code, API oder Protokoll.
+
 ## 6.2.0
 
 - **Lizenzwechsel:** KymoCore ist ab dieser Version doppelt lizenziert:
