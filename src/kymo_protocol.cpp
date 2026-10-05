@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+ * Copyright (c) 2026 Christof Seidel */
 #include "kymo_protocol.h"
 #include "common/embedded_bytes.h"
 #if KYMO_ENABLE_CRC || KYMO_ENABLE_DECODER

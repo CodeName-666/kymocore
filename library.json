@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/schema/library.json",
   "name": "KymoCore",
-  "version": "6.1.0",
+  "version": "6.2.0",
   "description": "Portable C++11 telemetry for KymoStudio on Arduino, ESP32 and STM32: heap-free Init/Main scheduling, 9-21 byte binary frames, 256 channels, optional XYZ, timestamps and CRC, with callback-based transport and backpressure handling.",
   "keywords": [
     "kymotrace",
@@ -16,7 +16,7 @@
   ],
   "authors": [
     {
-      "name": "Kymotrace",
+      "name": "Christof Seidel",
       "maintainer": true
     }
   ],
@@ -24,7 +24,7 @@
     "type": "git",
     "url": "https://github.com/CodeName-666/kymocore.git"
   },
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "homepage": "https://github.com/CodeName-666/kymocore",
   "frameworks": "*",
   "platforms": "*",
@@ -42,6 +42,8 @@
       "examples",
       "docs/images",
       "LICENSE",
+      "COMMERCIAL.md",
+      "CONTRIBUTING.md",
       "CHANGELOG.md",
       "PUBLISHING.md",
       "README.md",

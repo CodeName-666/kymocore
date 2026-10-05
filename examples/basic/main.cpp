@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+ * Copyright (c) 2026 Christof Seidel */
 /**
  * @file main.cpp
  * @brief Portable Init/Main example with a simulated clock and copying transport.
