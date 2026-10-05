@@ -1,39 +1,40 @@
-# KymoCore – Anleitung und Referenz
+# KymoCore – Guide and reference
 
-[← Zurück zur Übersicht](../README.md)
+[← Back to overview](../README.md) · **English** · [Deutsch](GUIDE.de.md)
 
-Diese Anleitung erklärt Einrichtung, Datenweg und Protokoll auf Deutsch. Die
-anschließende englische API-Referenz beschreibt die technischen Verträge.
+This guide explains setup, data path and protocol. The technical API reference
+at the end describes the detailed contracts.
 
-## Architektur und Datenweg
+## Architecture and data path
 
-![Aufbau von Messquelle bis KymoStudio](images/architecture.png)
+![From measurement source to KymoStudio](images/architecture.png)
 
-Die Anwendung besitzt Messquellen, Uhr, Konfiguration und Transporttreiber.
-`Kymo_Init` prüft die statische Konfiguration und bindet sie an einen Kontext.
-`Kymo_Main` wählt einen fälligen Kanal, ruft den Messcallback auf, kodiert
-den Messpunkt und bietet dem Transport die Bytes an. KymoStudio setzt
-empfangene Fragmente zusammen und ordnet Messwerte anhand ihrer Kanal-ID zu.
+The application owns the measurement sources, clock, configuration and
+transport drivers. `Kymo_Init` validates the static configuration and binds it
+to a context. `Kymo_Main` selects a due channel, calls the measurement
+callback, encodes the data point and offers the bytes to the transport.
+KymoStudio reassembles received fragments and assigns measurements by their
+channel ID.
 
-| Ebene | Aufgabe | Schnittstelle |
+| Layer | Task | Interface |
 |---|---|---|
-| Anwendung | Sensoren, Hardwareinitialisierung und Verbindung | Eigene Treiber |
-| Zeitquelle | Monotone Millisekunden liefern | `clock_ms(user)` |
-| Messquelle | Y und bei Bedarf X/Z lesen | `sample(user, id, out)` |
-| Scheduler | Fälligkeit, Round-Robin und Rückstau | `Kymo_Init`, `Kymo_Main` |
-| Codec | Werte prüfen und Little-Endian-Frame erzeugen | `kymo_encode_data` |
-| Transportadapter | Bytes kopieren oder kontrolliert ausleihen | `write`, optional `busy`/`service` |
-| KymoStudio | Dekodieren, Signale darstellen und auswerten | [Desktop-Projekt](https://github.com/CodeName-666/kymostudio) |
+| Application | Sensors, hardware initialisation and connection | Your own drivers |
+| Time source | Provide monotonic milliseconds | `clock_ms(user)` |
+| Measurement source | Read Y and, if needed, X/Z | `sample(user, id, out)` |
+| Scheduler | Due times, round robin and backpressure | `Kymo_Init`, `Kymo_Main` |
+| Codec | Check values and build a little-endian frame | `kymo_encode_data` |
+| Transport adapter | Copy bytes or borrow them in a controlled way | `write`, optional `busy`/`service` |
+| KymoStudio | Decode, display and analyse signals | [Desktop project](https://github.com/CodeName-666/kymostudio) |
 
-Die optionale C++-Klasse `Kymo` ist ein alternativer Push-Sender: Die
-Anwendung entscheidet selbst über den Sendezeitpunkt. Beide APIs verwenden
-dasselbe Wire-Format. Es gibt keine Messwertwarteschlange im Kern.
+The optional C++ class `Kymo` is an alternative push sender: the application
+decides when to send. Both APIs use the same wire format. There is no
+measurement queue in the core.
 
-## Installation mit PlatformIO
+## Installing with PlatformIO
 
-Nach Veröffentlichung `PIO_OWNER` durch den tatsächlichen PlatformIO-Benutzer
-oder die Organisation ersetzen. Der GitHub-Name bestimmt diesen Namespace
-nicht automatisch. `PIO_OWNER` ist ausdrücklich ein Platzhalter:
+After publication, replace `PIO_OWNER` with the actual PlatformIO user or
+organisation. The GitHub name does not determine this namespace automatically.
+`PIO_OWNER` is explicitly a placeholder:
 
 ```ini
 [env:esp32dev]
@@ -42,42 +43,42 @@ board = esp32dev
 framework = arduino
 monitor_speed = 115200
 lib_deps =
-    PIO_OWNER/KymoCore @ 6.2.1
+    PIO_OWNER/KymoCore @ 6.2.2
 ```
 
-Für Uno stattdessen `platform = atmelavr@5.3.0` und `board = uno` setzen.
-Die Library selbst ist weder an diese Boards noch an Arduino gebunden.
+For Uno, set `platform = atmelavr@5.3.0` and `board = uno` instead. The library
+itself is tied neither to these boards nor to Arduino.
 
-Bis zur Veröffentlichung in der Registry direkt von GitHub installieren. Der Tag
-legt die Version fest:
+Until it is published in the registry, install directly from GitHub. The tag
+pins the version:
 
 ```ini
 lib_deps =
-    https://github.com/CodeName-666/kymocore.git#v6.2.1
+    https://github.com/CodeName-666/kymocore.git#v6.2.2
 ```
 
-Alternativ aus diesem Repository ein Paket bauen:
+Alternatively, build a package from this repository:
 
 ```sh
-pio pkg pack . -o KymoCore-6.2.1.tar.gz
+pio pkg pack . -o KymoCore-6.2.2.tar.gz
 ```
 
-Das Archiv in das eigene Projekt kopieren und dort eintragen:
+Copy the archive into your project and reference it there:
 
 ```ini
 lib_deps =
-    file://KymoCore-6.2.1.tar.gz
+    file://KymoCore-6.2.2.tar.gz
 ```
 
-Alternativ den vollständigen Library-Ordner nach `lib/KymoCore` des eigenen
-Projekts kopieren.
+Alternatively, copy the complete library folder to `lib/KymoCore` of your own
+project.
 
-## Vollständiges Arduino- und ESP32-Beispiel
+## Complete Arduino and ESP32 example
 
-Folgender Inhalt für `src/main.cpp` sendet auf Kanal 0 alle 20 ms einen
-synthetischen Sägezahn zwischen 0 und knapp 1. Er verwendet ausschließlich
-die Standardeinstellungen. Die serielle Schnittstelle bleibt für Binärdaten
-reserviert; Diagnoseausgaben würden denselben Datenstrom verändern.
+The following content for `src/main.cpp` sends a synthetic sawtooth between 0
+and just below 1 on channel 0 every 20 ms. It uses only the default settings.
+The serial interface is reserved for binary data; diagnostic output would
+corrupt the same data stream.
 
 ```cpp
 #include <Arduino.h>
@@ -155,36 +156,35 @@ void loop()
 }
 ```
 
-`int available` folgt dem Rückgabetyp der Arduino-API; vor der Verengung wird
-der Wertebereich geprüft. Serial kopiert die angenommenen Bytes; deshalb ist
-hier kein Busy-Callback nötig. Die tatsächliche Ausführungszeit hängt vom
-Serial-Treiber ab. Den Messcallback später durch den Sensorzugriff ersetzen.
+`int available` follows the return type of the Arduino API; the value range is
+checked before narrowing. Serial copies the accepted bytes, so no busy callback
+is needed here. The actual execution time depends on the Serial driver. Later,
+replace the measurement callback with your sensor access.
 
-Mit `pio run` bauen, anschließend mit `pio run -t upload` auf das angeschlossene
-Board übertragen. KymoStudio mit 115200 Baud und 8N1 verbinden und Kanal 0
-einem Diagramm zuordnen. Einen geöffneten seriellen Monitor vorher schließen.
-Ein vollständig SDK-freies, ausführbares Beispiel liegt in
-[examples/basic](../examples/basic/README.md).
+Build with `pio run`, then flash the connected board with `pio run -t upload`.
+Connect KymoStudio at 115200 baud and 8N1 and assign channel 0 to a chart.
+Close any open serial monitor first. A completely SDK-free, executable example
+is in [examples/basic](../examples/basic/README.md).
 
-## Features und Konfiguration
+## Features and configuration
 
-Die Defaults ergeben einen skalaren Y-Sender mit Init/Main. Für installierte
-Registry-Pakete sind projektweite `build_flags` die reproduzierbare Wahl:
-Direkte Änderungen im installierten Paket können Updates überschreiben.
-Bei Quellkopien lassen sich Defaults in `src/kymo_build_config.h` bearbeiten.
-`kymo_features.h` validiert sie. Compilerdefinitionen haben Vorrang.
+The defaults result in a scalar Y sender with Init/Main. For installed registry
+packages, project-wide `build_flags` are the reproducible choice: direct
+changes in the installed package may be overwritten by updates. With source
+copies, defaults can be edited in `src/kymo_build_config.h`. `kymo_features.h`
+validates them. Compiler definitions take precedence.
 
-| Schalter | Default | Wirkung bei 1 |
+| Switch | Default | Effect when 1 |
 |---|---:|---|
-| `KYMO_ENABLE_RUNTIME` | 1 | Init/Main-Scheduler |
-| `KYMO_ENABLE_X` | 0 | Optionale X-Koordinate |
-| `KYMO_ENABLE_Z` | 0 | Optionale Z-Koordinate, unabhängig von X |
-| `KYMO_ENABLE_TIMESTAMP` | 0 | Zeitstempel auf dem Draht |
-| `KYMO_ENABLE_CRC` | 0 | Ausgehende CRC berechnen |
-| `KYMO_ENABLE_DECODER` | 0 | Vollständige Frames auf dem MCU dekodieren |
-| `KYMO_ENABLE_CPP` | 0 | C++-Push-Sender und Stream-Abstraktion |
+| `KYMO_ENABLE_RUNTIME` | 1 | Init/Main scheduler |
+| `KYMO_ENABLE_X` | 0 | Optional X coordinate |
+| `KYMO_ENABLE_Z` | 0 | Optional Z coordinate, independent of X |
+| `KYMO_ENABLE_TIMESTAMP` | 0 | Timestamp on the wire |
+| `KYMO_ENABLE_CRC` | 0 | Compute outgoing CRC |
+| `KYMO_ENABLE_DECODER` | 0 | Decode complete frames on the MCU |
+| `KYMO_ENABLE_CPP` | 0 | C++ push sender and stream abstraction |
 
-Für XYZ mit Zeitstempel und CRC ergänzen:
+For XYZ with timestamp and CRC, add:
 
 ```ini
 build_flags =
@@ -194,223 +194,223 @@ build_flags =
     -DKYMO_ENABLE_CRC=1
 ```
 
-Feature-Aktivierung erlaubt ein Feld; die Flags des jeweiligen Kanals wählen
-es für dessen Frame aus. XYZ mit Zeitstempel verwendet `KYMO_ALLOWED_FLAGS`,
-nur Zeitstempel `KYMO_FLAG_TIMESTAMP`. Der Callback setzt X/Z; die Runtime
-berechnet die Zeit seit Init. Alle Einheiten gemeinsam neu bauen: Ein Define
-allein im Sketch konfiguriert separat übersetzte Library-Dateien nicht.
+Enabling a feature allows a field; each channel's flags select it for that
+channel's frame. XYZ with timestamp uses `KYMO_ALLOWED_FLAGS`, timestamp only
+`KYMO_FLAG_TIMESTAMP`. The callback sets X/Z; the runtime computes the time
+since Init. Rebuild all units together: a define in the sketch alone does not
+configure separately compiled library files.
 
-Nur 0 und 1 sind erlaubt. Deaktivierte Implementierungen werden herauskompiliert.
-Unzulässige Feldanforderungen werden abgewiesen, nicht still entfernt.
-Öffentliche Datenlayouts bleiben gleich; die Schalter sparen hauptsächlich
-Code. Der MCU-Decoder prüft geschützte Eingaben auch bei deaktivierter
-ausgehender CRC. Der Desktop-Decoder ist von Firmware-Features unabhängig.
+Only 0 and 1 are allowed. Disabled implementations are compiled out. Invalid
+field requests are rejected, not silently dropped. Public data layouts stay the
+same; the switches mainly save code. The MCU decoder checks protected input
+even when outgoing CRC is disabled. The desktop decoder is independent of
+firmware features.
 
-## Scheduling und Übertragungsablauf
+## Scheduling and transmission flow
 
-![Main-Aufrufe, Teilübertragung und asynchroner Pufferbesitz](images/transmission.png)
+![Main calls, partial transfer and asynchronous buffer ownership](images/transmission.png)
 
-Es sind 1–256 eindeutige Kanal-IDs möglich. Perioden reichen von 0 bis
-`INT32_MAX` ms; 0 bedeutet bei jeder möglichen Auswahl. Nach Init sind alle
-Kanäle sofort fällig. Main prüft höchstens N Kanäle und ruft höchstens einmal
-den Messcallback und einmal Write auf. Round-Robin verhindert dauerhafte
-Verdrängung. Main häufiger als die Summe der gewünschten Abtastraten aufrufen;
-kurze Writes benötigen weitere Aufrufe.
+1–256 unique channel IDs are possible. Periods range from 0 to `INT32_MAX` ms;
+0 means on every possible selection. After Init all channels are due
+immediately. Main checks at most N channels and calls the measurement callback
+at most once and Write at most once. Round robin prevents permanent
+starvation. Call Main more often than the sum of the desired sampling rates;
+short writes need further calls.
 
-Pro Kontext existiert **ein 21-Byte-TX-Puffer**, daneben weitere Kontextfelder
-und **4 Bytes Scheduling-Zustand pro Kanal**. Der gesamte Kontext ist größer
-als 21 Bytes und ABI-abhängig. Konfiguration, Stack und Treiberpuffer kommen hinzu.
-Ein ausstehender Frame behält seinen Messwert. Danach werden aktuelle Werte
-abgefragt; ausgefallene Abtastungen werden nicht rekonstruiert.
+Each context has **one 21-byte TX buffer**, plus further context fields and
+**4 bytes of scheduling state per channel**. The whole context is larger than
+21 bytes and ABI-dependent. Configuration, stack and driver buffers come on
+top. A pending frame keeps its measurement. Afterwards current values are
+requested; missed samples are not reconstructed.
 
-`write(user, bytes, length)` meldet die Anzahl angenommener Bytes. Null heißt
-später erneut versuchen; ein kurzer Write verschiebt den Offset. Der nächste
-Main-Aufruf setzt am Rest fort. Eine Rückgabe größer als die angeforderte
-Länge verriegelt `KYMO_IO_ERROR` bis zur sicheren Neuinitialisierung.
+`write(user, bytes, length)` reports the number of accepted bytes. Zero means
+try again later; a short write advances the offset. The next Main call
+continues with the rest. A return value greater than the requested length
+latches `KYMO_IO_ERROR` until a safe re-initialisation.
 
-Bei synchroner Übertragung muss der Callback angenommene Bytes vor Rückkehr
-kopieren oder verbrauchen. Bei DMA/USB darf der Treiber den Zeiger behalten,
-wenn `busy(user)` bis zur Freigabe ungleich null bleibt. Währenddessen wird
-der Puffer nicht überschrieben. `KYMO_OK` bedeutet Annahme durch den Treiber,
-nicht physische Fertigstellung oder Empfangsbestätigung. `service(user)` läuft
-zu Beginn jedes gültigen Main-Aufrufs, auch bei Busy und verriegeltem Fehler.
+With synchronous transmission, the callback must copy or consume accepted bytes
+before returning. With DMA/USB the driver may keep the pointer if `busy(user)`
+stays non-zero until release. Meanwhile the buffer is not overwritten.
+`KYMO_OK` means acceptance by the driver, not physical completion or a receipt.
+`service(user)` runs at the start of every valid Main call, even when busy and
+with a latched error.
 
-Alle Konfigurationsdaten müssen die Nutzung überleben. Jede Instanz besitzt
-ihren eigenen Kontext und ihr eigenes Zeitstempelarray. APIs sind nicht
-reentrant; Task-/ISR-Synchronisierung übernimmt die Anwendung. Nicht neu
-initialisieren oder zerstören, solange ein Treiber den Puffer leiht. Bei
-Teilframes dürfen andere Produzenten keine Bytes in denselben Stream mischen.
+All configuration data must outlive its use. Each instance owns its own context
+and its own timestamp array. The APIs are not reentrant; the application takes
+care of task/ISR synchronisation. Do not re-initialise or destroy while a
+driver borrows the buffer. During partial frames, other producers must not mix
+bytes into the same stream.
 
-## Protokoll und Byte-Aufbau
+## Protocol and byte layout
 
-![Framefelder, Descriptorbits und konkrete Wire-Beispiele](images/protocol.png)
+![Frame fields, descriptor bits and concrete wire examples](images/protocol.png)
 
-Paketversion 6.2.1, Protokoll v6.1 und **Wire-Version 1** sind unterschiedliche
-Angaben. Der normative Vertrag steht in [PROTOCOL.md](../PROTOCOL.md).
+Package version 6.2.2, protocol v6.1 and **wire version 1** are different
+things. The normative contract is in [PROTOCOL.md](../PROTOCOL.md).
 
-| Offset | Größe | Inhalt |
+| Offset | Size | Content |
 |---|---:|---|
-| 0 | 1 Byte | Sync `A5` |
-| 1 | 1 Byte | Sync `5A` |
-| 2 | 1 Byte | Descriptor |
-| 3 | 1 Byte | Kanal-ID 0–255 |
-| 4 | 0/4 Bytes | Optionales X |
-| 4 oder 8 | 4 Bytes | Y, immer vorhanden |
-| nach Y | 0/4 Bytes | Optionales Z |
-| nach Z beziehungsweise Y | 0/4 Bytes | Optionale Zeit in ms |
-| letztes Byte | 1 Byte | CRC-8/ATM oder Null-Trailer |
+| 0 | 1 byte | Sync `A5` |
+| 1 | 1 byte | Sync `5A` |
+| 2 | 1 byte | Descriptor |
+| 3 | 1 byte | Channel ID 0–255 |
+| 4 | 0/4 bytes | Optional X |
+| 4 or 8 | 4 bytes | Y, always present |
+| after Y | 0/4 bytes | Optional Z |
+| after Z or Y | 0/4 bytes | Optional time in ms |
+| last byte | 1 byte | CRC-8/ATM or zero trailer |
 
-Die Payload-Reihenfolge ist **X? → Y → Z? → Zeit?**. X/Y/Z sind endliche
-IEEE-754-Float32-Werte; NaN und Unendlich werden abgewiesen. Zeit ist ein
-unsigned 32-Bit-Millisekundenwert relativ zum Senderstart und läuft nach
-ungefähr 49,7 Tagen über. Mehrbytewerte sind Little Endian: niederwertigstes
-Byte zuerst. Es werden keine gepackten C-Strukturen direkt übertragen.
+The payload order is **X? → Y → Z? → time?**. X/Y/Z are finite IEEE-754
+float32 values; NaN and infinity are rejected. Time is an unsigned 32-bit
+millisecond value relative to sender start and wraps after about 49.7 days.
+Multi-byte values are little endian: least significant byte first. No packed
+C structures are transmitted directly.
 
-| Descriptorbits | Bedeutung |
+| Descriptor bits | Meaning |
 |---|---|
-| 7–6 | `01` = Wire-Version 1 |
-| 5–4 | `00` = Messpunkt |
-| 3 | X vorhanden |
-| 2 | Z vorhanden |
-| 1 | Zeitstempel vorhanden |
-| 0 | `NO_CRC`: 1 ohne CRC, 0 mit CRC |
+| 7–6 | `01` = wire version 1 |
+| 5–4 | `00` = data point |
+| 3 | X present |
+| 2 | Z present |
+| 1 | Timestamp present |
+| 0 | `NO_CRC`: 1 without CRC, 0 with CRC |
 
-Gültig sind `0x40` bis `0x4F`: gerade Werte mit CRC, ungerade ohne CRC.
-Andere Versionen und Nachrichtentypen werden abgewiesen. Firmware-Features
-können die unterstützten Layouts weiter einschränken.
+`0x40` to `0x4F` are valid: even values with CRC, odd values without CRC.
+Other versions and message types are rejected. Firmware features can restrict
+the supported layouts further.
 
-**Länge = 9 + 4 × (X vorhanden + Z vorhanden + Zeit vorhanden)**, wobei
-jeder Summand 0 oder 1 ist. Ein separates Längenbyte ist nicht nötig.
+**Length = 9 + 4 × (X present + Z present + time present)**, where each term is
+0 or 1. A separate length byte is not needed.
 
-| Layout | Ohne Zeit | Mit Zeit |
+| Layout | Without time | With time |
 |---|---:|---:|
-| Y | 9 Bytes | 13 Bytes |
-| XY | 13 Bytes | 17 Bytes |
-| YZ | 13 Bytes | 17 Bytes |
-| XYZ | 17 Bytes | 21 Bytes |
+| Y | 9 bytes | 13 bytes |
+| XY | 13 bytes | 17 bytes |
+| YZ | 13 bytes | 17 bytes |
+| XYZ | 17 bytes | 21 bytes |
 
-### Konkrete Frames
+### Concrete frames
 
-Kanal 7, Y = 1,0, ohne Zeit und ohne CRC:
+Channel 7, Y = 1.0, without time and without CRC:
 
 ```text
 A5 5A | 41 | 07 | 00 00 80 3F | 00
 Sync    Desc ID   Y = 1.0        Trailer
 ```
 
-`0x41 = 01000001`: Version 1, Messpunkt, keine optionalen Felder, NO_CRC
-gesetzt. `00 00 80 3F` ist Little Endian für Float32 `0x3F800000`.
-Mit CRC lautet der Frame `A5 5A 40 07 00 00 80 3F 54`.
+`0x41 = 01000001`: version 1, data point, no optional fields, NO_CRC set.
+`00 00 80 3F` is little endian for float32 `0x3F800000`. With CRC the frame is
+`A5 5A 40 07 00 00 80 3F 54`.
 
-Kanal 3, X = 1,25, Y = −2,5, Z = 9,0, Zeit = 1234 ms:
+Channel 3, X = 1.25, Y = −2.5, Z = 9.0, time = 1234 ms:
 
 ```text
 A5 5A | 4F | 03 | 00 00 A0 3F | 00 00 20 C0 | 00 00 10 41 | D2 04 00 00 | 00
-Sync    Desc ID   X = 1.25      Y = -2.5      Z = 9.0       Zeit = 1234   Trailer
+Sync    Desc ID   X = 1.25      Y = -2.5      Z = 9.0       time = 1234   Trailer
 ```
 
-Der volle Frame hat 21 Bytes. Mit CRC wird `4F` zu `4E` und das letzte Byte
-zu `89`. Die Python-Datenpunkte der App repräsentieren die Wire-Millisekunden
-als Sekunden: 1234 ms entsprechen 1,234 s.
+The full frame has 21 bytes. With CRC, `4F` becomes `4E` and the last byte
+becomes `89`. The app's Python data points represent the wire milliseconds as
+seconds: 1234 ms correspond to 1.234 s.
 
-### CRC und Wiederaufnahme
+### CRC and resynchronisation
 
-CRC ist standardmäßig deaktiviert. Der Sender setzt NO_CRC und schreibt
-ein Null-Trailerbyte. Der Empfänger ignoriert dessen Wert. Sync-, Descriptor-,
-Längen- und Endlichkeitsprüfungen bleiben aktiv, erkennen aber nicht jede
-Beschädigung: Ein verfälschter endlicher Messwert kann passieren.
+CRC is disabled by default. The sender sets NO_CRC and writes a zero trailer
+byte. The receiver ignores its value. Sync, descriptor, length and finiteness
+checks stay active but do not detect every corruption: a corrupted finite
+measurement can get through.
 
-Mit `KYMO_ENABLE_CRC=1` gilt CRC-8/ATM: Polynom `0x07`, Startwert `0x00`,
-keine Reflexion, XOR-out `0x00`. Geschützt werden **Descriptor, ID und Payload**;
-Sync und CRC-Byte selbst sind ausgenommen. ASCII `123456789` ergibt `F4`.
-Nach ungültigen Frames sucht der Desktop-Streamdecoder erneut nach `A5 5A`.
-Read-Grenzen des Transports sind keine Framegrenzen.
+With `KYMO_ENABLE_CRC=1`, CRC-8/ATM applies: polynomial `0x07`, initial value
+`0x00`, no reflection, XOR-out `0x00`. **Descriptor, ID and payload** are
+protected; sync and the CRC byte itself are excluded. ASCII `123456789` yields
+`F4`. After invalid frames, the desktop stream decoder searches for `A5 5A`
+again. Transport read boundaries are not frame boundaries.
 
-Ältere v6.0-Empfänger akzeptieren NO_CRC nicht. Daher einen entsprechend
-aktualisierten App-Stand verwenden oder CRC einschalten. Der aktuelle
-Desktop-Decoder verarbeitet beide Modi auch gemischt. Der optionale
-MCU-Decoder erwartet einen vollständigen Frame; er ist kein Streamassembler.
+Older v6.0 receivers do not accept NO_CRC. Therefore use an updated app or
+enable CRC. The current desktop decoder handles both modes, even mixed. The
+optional MCU decoder expects a complete frame; it is not a stream assembler.
 
-## Transporte und Dimensionierung
+## Transports and sizing
 
-| Transport | Anbindung durch die Anwendung | Framing |
+| Transport | Connection by the application | Framing |
 |---|---|---|
-| UART / Serial | Kopierender Write oder DMA plus Busy | Teilframes möglich |
-| USB CDC | Kopieren oder Puffer ausleihen plus Busy | USB-Pakete sind keine Framegrenzen |
-| TCP | Socket-Write, optional Service | Zusammenhängender Bytestrom |
-| MQTT | Netzwerkdienst und Publish-Callback | Ganzen Frame annehmen oder 0 melden |
-| CAN-FD | Ganzen Frame in Datenfeld einbetten | Padding vor dem Dekodieren entfernen |
-| Classic CAN | Eigenes kompaktes Mapping | Kein 9–21-Byte-Frame im 8-Byte-Paket |
+| UART / Serial | Copying write or DMA plus busy | Partial frames possible |
+| USB CDC | Copy or borrow the buffer plus busy | USB packets are not frame boundaries |
+| TCP | Socket write, optional service | Continuous byte stream |
+| MQTT | Network service and publish callback | Accept the whole frame or report 0 |
+| CAN FD | Embed the whole frame in the data field | Remove padding before decoding |
+| Classic CAN | Own compact mapping | No 9–21 byte frame in an 8-byte packet |
 
-Classic CAN verwendet eine Kanalzuordnung über Arbitration-ID beziehungsweise
-Adapterkonfiguration und ein konfiguriertes Zahlenformat. Details stehen im
-[Protokollvertrag](../PROTOCOL.md#can). Netzwerkaufbau und Wiederverbindung gehören
-zum Adapter. Das externe PubSubClient-Beispiel verbindet synchron und ist
-deshalb kein Nachweis für einen harten Echtzeitzyklus.
+Classic CAN uses a channel mapping via arbitration ID or adapter configuration
+and a configured number format. Details are in the
+[protocol contract](../PROTOCOL.md#can). Network setup and reconnection belong
+to the adapter. The external PubSubClient example connects synchronously and is
+therefore no proof of a hard real-time cycle.
 
-UART mit 115200 Baud und 8N1 benötigt zehn Leitungsbits pro Byte. Theoretisch
-sind 11.520 Bytes/s möglich: etwa 1.280 Y-Messpunkte/s oder 548 XYZ-Messpunkte/s
-mit Zeitstempel, jeweils ohne weitere Pausen oder Treiberkosten. Zehn Kanäle
-mit je 100 Hz benötigen als reine Y-Frames 9.000 Bytes/s; mit Zeitstempel
-13.000 Bytes/s und damit mehr als dieser UART tragen kann. Messrate,
-Main-Aufruffrequenz und Transport gemeinsam dimensionieren.
+UART at 115200 baud and 8N1 needs ten line bits per byte. In theory 11,520
+bytes/s are possible: about 1,280 Y data points/s or 548 XYZ data points/s with
+timestamp, each without further gaps or driver overhead. Ten channels at 100 Hz
+each need 9,000 bytes/s as plain Y frames; with timestamp 13,000 bytes/s, more
+than this UART can carry. Size the measurement rate, Main call frequency and
+transport together.
 
-## KymoStudio verbinden
+## Connecting KymoStudio
 
-Die zugehörige Desktop-Anwendung ist
-**[KymoStudio auf GitHub](https://github.com/CodeName-666/kymostudio)**.
-Dort befinden sich Quellcode und Informationen zum jeweiligen Projektstand.
-Die Library liefert Telemetrie; die App übernimmt Empfang und Visualisierung.
+The matching desktop application is
+**[KymoStudio on GitHub](https://github.com/CodeName-666/kymostudio)**. It hosts
+the source code and information on the current project state. The library
+delivers telemetry; the app handles reception and visualisation.
 
-1. Einen App-Decoder mit v6.1/NO_CRC-Unterstützung verwenden oder Firmware-CRC
-   aktivieren. Lokaler Entwicklungsstand und öffentliches Repo können abweichen.
-2. Firmware übertragen und den Eingang in der App konfigurieren: beispielsweise
-   Serial mit 115200 Baud/8N1 oder MQTT mit dem Topic des Publishers.
-3. Die Kanal-ID einem Signal/Diagramm zuordnen. Y ist der Messwert; X/Z sind
-   optionale Koordinaten. Ohne X wird kein gemessener X-Wert übertragen.
-4. Zunächst die bekannte Beispielwellenform prüfen, dann Sensoren anbinden.
+1. Use an app decoder with v6.1/NO_CRC support or enable firmware CRC. Your
+   local development state and the public repository may differ.
+2. Flash the firmware and configure the input in the app, for example Serial at
+   115200 baud/8N1 or MQTT with the publisher's topic.
+3. Assign the channel ID to a signal/chart. Y is the measurement; X/Z are
+   optional coordinates. Without X, no measured X value is transmitted.
+4. First check the known example waveform, then connect sensors.
 
-Das Protokoll überträgt keine Kanalnamen, Einheiten oder Sensorkonfigurationen.
-Diese Zuordnung bleibt bei Anwendung und App. Ein Rückkanal für Steuerbefehle
-ist nicht Teil von v6.1. Legacy-JSON kann die App zusätzlich empfangen;
-KymoCore kodiert binär.
+The protocol does not transmit channel names, units or sensor configurations.
+This mapping stays with the application and the app. A back channel for
+control commands is not part of v6.1. The app can additionally receive legacy
+JSON; KymoCore encodes binary.
 
-## Paketstruktur und Prüfung
+## Package structure and checks
 
 ```text
 KymoCore/
-  library.json             PlatformIO-Metadaten und Exportumfang
-  library.properties       Arduino-Metadaten
-  LICENSE                  GPLv3-Lizenztext
-  COMMERCIAL.md            Doppellizenz: GPLv3 oder kommerziell
-  CONTRIBUTING.md          Beiträge und Rechteeinräumung
-  README.md                Anleitung und API-Verträge
-  PROTOCOL.md              Normativer Wire-Vertrag
-  CHANGELOG.md             Änderungen und Migration
-  PUBLISHING.md            Release-Vorbereitung für Maintainer
-  src/                     Plattformunabhängiger Kern und Header
-    common/                Bit-, Byte- und CRC-Helfer
-  examples/basic/          SDK-freies ausführbares Beispiel
-  docs/images/             Architektur- und Protokollbilder
+  library.json             PlatformIO metadata and export scope
+  library.properties       Arduino metadata
+  LICENSE                  GPLv3 license text
+  COMMERCIAL.md            Dual licensing: GPLv3 or commercial
+  CONTRIBUTING.md          Contributions and grant of rights
+  README.md                Overview and quick start
+  PROTOCOL.md              Normative wire contract
+  CHANGELOG.md             Changes and migration
+  PUBLISHING.md            Release preparation for maintainers
+  src/                     Platform-independent core and headers
+    common/                Bit, byte and CRC helpers
+  examples/basic/          SDK-free executable example
+  docs/                    Guide (English/German) and images
 ```
 
-Die CI dieses Repositorys kompiliert und startet bei jedem Push das portable
-Beispiel und den Golden-Vector-Test (mit und ohne CRC). Die vollständigen Tests
-laufen in der Firmware [kymoprobe](https://github.com/CodeName-666/kymoprobe):
-Featureprofile, echter App-Decoder, Paket- und Boardbuilds. Dort ist diese
-Library als Git-Submodul `lib/KymoCore` eingebunden:
+This repository's CI compiles and runs the portable example and the golden
+vector test (with and without CRC) on every push. The full tests run in the
+firmware [kymoprobe](https://github.com/CodeName-666/kymoprobe): feature
+profiles, the real app decoder, package and board builds. There this library is
+included as the Git submodule `lib/KymoCore`:
 
 ```sh
 python tools/test_native.py --app ../KymoStudio
 python tools/test_package.py
 ```
 
-Der Paketcheck baut separate Verbraucher aus dem Archiv und kompiliert das
-Arduino-Beispiel dieser README. Native Tests prüfen unter anderem Featureprofile,
-CRC, Scheduling und den echten App-Decoder. Builds ersetzen keine Boardtests,
-Stackmessungen oder Zeitmessungen im Treiber. Eigene Adapter auf Zielhardware
-validieren. Die Paketvorbereitung und noch nötigen Schritte stehen in
-[PUBLISHING.md](../PUBLISHING.md), Änderungen in [CHANGELOG.md](../CHANGELOG.md).
+The package check builds separate consumers from the archive and compiles the
+Arduino example of the README. Among other things, the native tests check
+feature profiles, CRC, scheduling and the real app decoder. Builds do not
+replace board tests, stack measurements or timing measurements in the driver.
+Validate your own adapters on the target hardware. Package preparation and the
+remaining steps are in [PUBLISHING.md](../PUBLISHING.md) (German), changes in
+[CHANGELOG.md](../CHANGELOG.md).
 
 ## Technical API reference
 

@@ -1,46 +1,50 @@
-# Lizenzierung von KymoCore
+# Licensing KymoCore
+
+**English** · [Deutsch](COMMERCIAL.de.md)
 
 Copyright (c) 2026 Christof Seidel
 
-KymoCore wird **doppelt lizenziert**. Du wählst eine der beiden Lizenzen:
+KymoCore is **dual-licensed**. You choose one of the two licenses:
 
-1. **GNU General Public License v3.0** ([LICENSE](LICENSE)): kostenlos.
-2. **Kommerzielle Lizenz**: kostenpflichtig, für Unternehmen, die die GPL
-   nicht einhalten wollen oder können.
+1. **GNU General Public License v3.0** ([LICENSE](LICENSE)): free of charge.
+2. **Commercial license**: paid, for companies that cannot or do not want to
+   comply with the GPL.
 
-SPDX-Kennung: `GPL-3.0-only OR LicenseRef-KymoCore-Commercial`
+SPDX identifier: `GPL-3.0-only OR LicenseRef-KymoCore-Commercial`
 
-## Welche Lizenz brauche ich?
+## Which license do I need?
 
-| Einsatz | Lizenz |
+| Use | License |
 |---|---|
-| Hobby, Basteln, Lernen, Schule, Studium, private Projekte | GPLv3, kostenlos |
-| Eigenes Open-Source-Projekt unter GPLv3 | GPLv3, kostenlos |
-| Gerät oder Firmware mit KymoCore wird **weitergegeben oder verkauft**, der eigene Firmware-Quellcode soll **nicht** offengelegt werden | **kommerzielle Lizenz erforderlich** |
-| Einbau in ein proprietäres Produkt, SDK oder eine Plattform | **kommerzielle Lizenz erforderlich** |
-| Produktiver Einsatz in einem Unternehmen, zum Beispiel auf Prüfständen oder in der Fertigung | kommerzielle Lizenz erbeten (siehe unten) |
+| Hobby, tinkering, learning, school, university, private projects | GPLv3, free of charge |
+| Your own open-source project under GPLv3 | GPLv3, free of charge |
+| A device or firmware with KymoCore is **distributed or sold** and your own firmware source code is **not** to be disclosed | **commercial license required** |
+| Built into a proprietary product, SDK or platform | **commercial license required** |
+| Productive use in a company, for example on test benches or in production | commercial license requested (see below) |
 
-Die GPLv3 verlangt: Wer Firmware weitergibt, die KymoCore enthält, muss den
-**vollständigen Quellcode dieser Firmware** unter der GPLv3 an die Empfänger
-weitergeben. Die Weitergabe vorinstalliert auf einem Gerät zählt ebenfalls.
-Die kommerzielle Lizenz hebt diese Pflicht auf.
+The GPLv3 requires: anyone distributing firmware that contains KymoCore must
+provide the **complete source code of that firmware** to the recipients under
+the GPLv3. Distribution pre-installed on a device counts as well. The
+commercial license removes this obligation.
 
-Rein interne Nutzung ohne Weitergabe erlaubt die GPLv3 auch Unternehmen. Wer
-KymoCore beruflich produktiv einsetzt, wird trotzdem gebeten, eine kommerzielle
-Lizenz zu erwerben. Sie finanziert die Weiterentwicklung und schafft eine
-klare Rechtslage für den Einsatz in Produkten.
+The GPLv3 also allows companies purely internal use without distribution.
+Anyone using KymoCore professionally and productively is nevertheless asked to
+purchase a commercial license. It funds further development and provides a
+clear legal basis for use in products.
 
-## Kommerzielle Lizenz anfragen
+## Requesting a commercial license
 
-Lege im Repository ein Issue mit dem Titel **„Kommerzielle Lizenz“** an:
+Open an issue titled **"Commercial license"** in the repository:
 <https://github.com/CodeName-666/kymocore/issues>
 
-Hilfreiche Angaben sind Firma, Produkt und Einsatzzweck sowie die erwartete
-Stückzahl beziehungsweise Anzahl der Geräte. Bedingungen und Preise werden
-individuell vereinbart.
+Helpful details are the company, product and intended use, as well as the
+expected quantity or number of devices. Terms and prices are agreed
+individually.
 
-## Frühere Versionen
+## Earlier versions
 
-Versionen **bis einschließlich 6.1.0** wurden unter der MIT-Lizenz
-veröffentlicht. Für diese Versionen gelten die MIT-Bedingungen weiter.
-**Ab Version 6.2.0** gilt die oben beschriebene Doppellizenz.
+Versions **up to and including 6.1.0** were published under the MIT license.
+The MIT terms continue to apply to those versions. **From version 6.2.0** the
+dual licensing described above applies.
+
+If the English and German versions differ, the German version prevails.
