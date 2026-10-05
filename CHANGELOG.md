@@ -1,5 +1,14 @@
 # Changelog
 
+## 6.2.2
+
+- Documentation is now English by default with a German version in parallel:
+  `README.md`/`README.de.md`, `docs/GUIDE.md`/`docs/GUIDE.de.md`,
+  `COMMERCIAL.md`/`COMMERCIAL.de.md`, `CONTRIBUTING.md`/`CONTRIBUTING.de.md`.
+  A language switch at the top of each file toggles between them.
+- `docs/ANLEITUNG.md` was renamed to `docs/GUIDE.de.md`.
+- No change to code, API or protocol.
+
 ## 6.2.1
 
 - README als Übersicht mit Logo, Screenshot, Einsatzgebieten und Schnellstart.
