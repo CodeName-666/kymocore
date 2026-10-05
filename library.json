@@ -28,12 +28,19 @@
   "homepage": "https://github.com/CodeName-666/kymocore",
   "frameworks": "*",
   "platforms": "*",
-  "headers": ["kymo_runtime.h", "kymo_protocol.h", "kymo.h"],
+  "headers": [
+    "kymo_runtime.h",
+    "kymo_protocol.h",
+    "kymo.h"
+  ],
   "examples": [
     {
       "name": "Portable Init/Main",
       "base": "examples/basic",
-      "files": ["main.cpp", "README.md"]
+      "files": [
+        "main.cpp",
+        "README.md"
+      ]
     }
   ],
   "export": {
@@ -41,6 +48,7 @@
       "src",
       "examples",
       "docs/images",
+      "docs/ANLEITUNG.md",
       "LICENSE",
       "COMMERCIAL.md",
       "CONTRIBUTING.md",
