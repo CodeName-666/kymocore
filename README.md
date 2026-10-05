@@ -178,8 +178,8 @@ Ein vollständig SDK-freies, ausführbares Beispiel liegt in
 
 ## Unterstützte Plattformen
 
-KymoCore ist plattformunabhängig. Diese Ziele werden in
-[kymoprobe](https://github.com/CodeName-666/kymoprobe) regelmäßig gebaut:
+KymoCore ist plattformunabhängig. Mit den Beispielen aus
+[kymoprobe](https://github.com/CodeName-666/kymoprobe) sind diese Ziele gebaut und geprüft:
 
 | Familie | Boards | Transport im Beispiel |
 |---|---|---|
