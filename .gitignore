@@ -1,0 +1,7 @@
+.pio/
+*.o
+*.exe
+kymo-basic
+golden
+*.tar.gz
+*.sha256

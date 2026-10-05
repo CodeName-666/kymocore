@@ -1,0 +1,30 @@
+name: KymoCore
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Portables Beispiel (Standardfeatures)
+        run: |
+          g++ -std=c++11 -Wall -Wextra -Werror -pedantic -fno-exceptions -fno-rtti -Isrc \
+            examples/basic/main.cpp src/kymo_protocol.cpp src/kymo_runtime.cpp src/kymo.cpp -o kymo-basic
+          ./kymo-basic
+      - name: Golden-Vector-Test (alle Features, ohne und mit CRC)
+        run: |
+          for crc in 0 1; do
+            g++ -std=c++11 -Wall -Wextra -Werror -pedantic -fno-exceptions -fno-rtti -Isrc \
+              -DKYMO_ENABLE_RUNTIME=1 -DKYMO_ENABLE_X=1 -DKYMO_ENABLE_Z=1 -DKYMO_ENABLE_TIMESTAMP=1 \
+              -DKYMO_ENABLE_DECODER=1 -DKYMO_ENABLE_CPP=1 -DKYMO_ENABLE_CRC=$crc \
+              test/protocol_golden_test.cpp src/kymo_protocol.cpp src/kymo_runtime.cpp src/kymo.cpp -o golden
+            ./golden
+          done
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install platformio
+      - run: pio pkg pack . -o KymoCore.tar.gz
