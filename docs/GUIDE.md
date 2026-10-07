@@ -32,9 +32,7 @@ measurement queue in the core.
 
 ## Installing with PlatformIO
 
-After publication, replace `PIO_OWNER` with the actual PlatformIO user or
-organisation. The GitHub name does not determine this namespace automatically.
-`PIO_OWNER` is explicitly a placeholder:
+Install KymoCore from the PlatformIO Registry using the `codename666` namespace:
 
 ```ini
 [env:esp32dev]
@@ -43,7 +41,7 @@ board = esp32dev
 framework = arduino
 monitor_speed = 115200
 lib_deps =
-    PIO_OWNER/KymoCore @ 6.2.2
+    codename666/KymoCore @ 6.2.3
 ```
 
 For Uno, set `platform = atmelavr@5.3.0` and `board = uno` instead. The library
@@ -54,20 +52,20 @@ pins the version:
 
 ```ini
 lib_deps =
-    https://github.com/CodeName-666/kymocore.git#v6.2.2
+    https://github.com/CodeName-666/kymocore.git#v6.2.3
 ```
 
 Alternatively, build a package from this repository:
 
 ```sh
-pio pkg pack . -o KymoCore-6.2.2.tar.gz
+pio pkg pack . -o KymoCore-6.2.3.tar.gz
 ```
 
 Copy the archive into your project and reference it there:
 
 ```ini
 lib_deps =
-    file://KymoCore-6.2.2.tar.gz
+    file://KymoCore-6.2.3.tar.gz
 ```
 
 Alternatively, copy the complete library folder to `lib/KymoCore` of your own
@@ -245,7 +243,7 @@ bytes into the same stream.
 
 ![Frame fields, descriptor bits and concrete wire examples](images/protocol.png)
 
-Package version 6.2.2, protocol v6.1 and **wire version 1** are different
+Package version 6.2.3, protocol v6.1 and **wire version 1** are different
 things. The normative contract is in [PROTOCOL.md](../PROTOCOL.md).
 
 | Offset | Size | Content |

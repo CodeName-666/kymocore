@@ -1,5 +1,11 @@
 # Changelog
 
+## 6.2.3
+
+- Prepare the PlatformIO Registry release under `codename666/KymoCore`.
+- Replace installation placeholders with the confirmed registry namespace.
+- No change to code, API or protocol.
+
 ## 6.2.2
 
 - Documentation is now English by default with a German version in parallel:

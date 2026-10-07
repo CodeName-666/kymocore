@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 6.2.2" src="https://img.shields.io/badge/version-6.2.2-7C5CFF">
+  <img alt="Version 6.2.3" src="https://img.shields.io/badge/version-6.2.3-7C5CFF">
   <img alt="Lizenz GPLv3 oder kommerziell" src="https://img.shields.io/badge/Lizenz-GPLv3%20%7C%20kommerziell-15123A">
   <img alt="C++11 mit C-API" src="https://img.shields.io/badge/C%2B%2B11-C--API-A78BFA">
   <img alt="Plattformen" src="https://img.shields.io/badge/Arduino%20%C2%B7%20ESP32%20%C2%B7%20STM32-PlatformIO-FDE047">
@@ -84,7 +84,7 @@ In der `platformio.ini` deines Projekts eintragen:
 
 ```ini
 lib_deps =
-    https://github.com/CodeName-666/kymocore.git#v6.2.2
+    codename666/KymoCore @ 6.2.3
 ```
 
 ### Vollständiges Beispiel für Arduino und ESP32
