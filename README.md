@@ -62,7 +62,7 @@ as curves, XY traces or in 3D.
 - **Control engineering:** compare setpoint, actual value and output of a PID loop live and tune the parameters.
 - **Sensor development:** make noise, drift and step response of sensors visible.
 - **Motors and power electronics:** record currents, speeds and positions with timestamps.
-- **Test benches and endurance runs:** monitor many channels in parallel, protected against transmission errors by CRC.
+- **Test benches and endurance runs:** monitor many channels in parallel; enable the optional CRC to detect transmission errors.
 - **Robotics and motion:** display paths and trajectories directly as XY or XYZ curves.
 - **Teaching, university and maker projects:** make measurement data understandable instead of reading columns of numbers in the serial monitor.
 
