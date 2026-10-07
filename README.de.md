@@ -62,7 +62,7 @@ die Signale live als Kurve, als XY-Bahn oder in 3D.
 - **Regelungstechnik:** Soll-, Ist- und Stellgröße eines PID-Reglers live vergleichen und die Parameter einstellen.
 - **Sensorentwicklung:** Rauschen, Drift und Sprungantwort von Sensoren sichtbar machen.
 - **Motoren und Leistungselektronik:** Ströme, Drehzahlen und Positionen mit Zeitstempel aufzeichnen.
-- **Prüfstände und Dauerläufe:** viele Kanäle parallel überwachen, per CRC gegen Übertragungsfehler gesichert.
+- **Prüfstände und Dauerläufe:** viele Kanäle parallel überwachen; mit der optionalen CRC werden Übertragungsfehler erkannt.
 - **Robotik und Bewegung:** Bahnen und Trajektorien direkt als XY- oder XYZ-Kurve darstellen.
 - **Lehre, Studium und Maker-Projekte:** Messdaten verständlich machen, statt Zahlenkolonnen im seriellen Monitor zu lesen.
 
