@@ -25,7 +25,7 @@
 
 #include "kymo_features.h"
 
-#if KYMO_ENABLE_CPP || defined(DOXYGEN)
+#if KYMO_EFFECTIVE_CPP || defined(DOXYGEN)
 #include <stdint.h>
 #include "kymo_protocol.h"
 #include "kymo_stream.h"

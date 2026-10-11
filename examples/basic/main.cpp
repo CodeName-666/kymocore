@@ -6,6 +6,10 @@
  * @details Produces ten scalar frames without a board, SDK, heap or decoder.
  * The application owns every buffer. Replace the callbacks for actual hardware.
  */
+#include <kymo_features.h>
+
+#if KYMO_EFFECTIVE_RUNTIME
+
 #include <kymo_runtime.h>
 
 static uint32_t sTickMs = 0U;
@@ -103,3 +107,16 @@ int main()
     }
     return result;
 }
+
+#else
+
+/*******************************************************************************
+ * main
+ ******************************************************************************/
+int main()
+{
+    int result = 0;
+    return result;
+}
+
+#endif

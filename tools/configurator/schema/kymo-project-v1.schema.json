@@ -1,0 +1,432 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kymocore.dev/schema/kymo-project-v1.schema.json",
+  "title": "KymoCore project configuration v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "project_name",
+    "core_config_api_version",
+    "profiles",
+    "active_profile",
+    "channels",
+    "bindings",
+    "port",
+    "build"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "project_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "core_config_api_version": {
+      "const": 1
+    },
+    "active_profile": {
+      "type": "string",
+      "minLength": 1
+    },
+    "profiles": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "enabled",
+          "features"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "features": {
+            "type": "object",
+            "required": [
+              "runtime",
+              "x",
+              "z",
+              "timestamp",
+              "crc",
+              "decoder",
+              "cpp"
+            ],
+            "properties": {
+              "runtime": {
+                "type": "boolean"
+              },
+              "x": {
+                "type": "boolean"
+              },
+              "z": {
+                "type": "boolean"
+              },
+              "timestamp": {
+                "type": "boolean"
+              },
+              "crc": {
+                "type": "boolean"
+              },
+              "decoder": {
+                "type": "boolean"
+              },
+              "cpp": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          },
+          "trace": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "isr": {
+                "type": "boolean"
+              },
+              "scheduler": {
+                "type": "boolean"
+              },
+              "flow": {
+                "type": "boolean"
+              },
+              "port": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "generic",
+                      "esp32_freertos",
+                      "stm32_baremetal"
+                    ]
+                  },
+                  "core_count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2
+                  },
+                  "scheduler_complete": {
+                    "type": "boolean"
+                  },
+                  "isr_complete": {
+                    "type": "boolean"
+                  },
+                  "core_state_complete": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "clock": {
+                "type": "object",
+                "properties": {
+                  "callback": {
+                    "type": "string"
+                  },
+                  "frequency_hz": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "counter_bits": {
+                    "enum": [
+                      32,
+                      64
+                    ]
+                  },
+                  "domain_id": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 65535
+                  },
+                  "smp_synchronized": {
+                    "type": "boolean"
+                  },
+                  "reset_rule": {
+                    "const": "new_session"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "session": {
+                "type": "object",
+                "properties": {
+                  "callback": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "buffer": {
+                "type": "object",
+                "properties": {
+                  "events_per_core": {
+                    "type": "integer",
+                    "minimum": 16,
+                    "maximum": 4096
+                  },
+                  "max_contexts": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 256
+                  },
+                  "max_depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 255
+                  },
+                  "max_isr_nesting": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  }
+                },
+                "additionalProperties": false
+              },
+              "transport": {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "enum": [
+                      "dedicated_trace",
+                      "shared_v2"
+                    ]
+                  },
+                  "max_frame_bytes": {
+                    "type": "integer",
+                    "minimum": 64,
+                    "maximum": 240
+                  },
+                  "drain_events": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 4096
+                  },
+                  "drain_bytes": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                  },
+                  "max_flush_latency_ms": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "write_borrows_buffer": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "bindings": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "period_ms"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "period_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "x": {
+            "type": "boolean"
+          },
+          "z": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "bindings": {
+      "type": "object",
+      "properties": {
+        "clock": {
+          "type": "string"
+        },
+        "sample": {
+          "type": "string"
+        },
+        "write": {
+          "type": "string"
+        },
+        "busy": {
+          "type": "string"
+        },
+        "service": {
+          "type": "string"
+        },
+        "write_borrows_buffer": {
+          "type": "boolean"
+        },
+        "cpp_stream": {
+          "type": "string"
+        },
+        "cpp_clock": {
+          "type": "string"
+        },
+        "clock_user": {
+          "type": "string"
+        },
+        "sample_user": {
+          "type": "string"
+        },
+        "transport_user": {
+          "type": "string"
+        },
+        "cpp_timestamp_default": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "port": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "generic",
+            "esp32_freertos",
+            "stm32_baremetal"
+          ]
+        },
+        "capabilities_verified": {
+          "type": "boolean"
+        },
+        "core_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    "build": {
+      "type": "object",
+      "properties": {
+        "system": {
+          "enum": [
+            "gcc",
+            "cmake",
+            "platformio"
+          ]
+        },
+        "output_dir": {
+          "type": "string"
+        },
+        "include_dir": {
+          "type": "string"
+        },
+        "source_dir": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "resources": {
+      "type": "object",
+      "properties": {
+        "ram_budget_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "transport_bytes_per_second": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "symbols": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "kind": {
+            "enum": ["function", "scope", "marker"]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "contexts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4294967294
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "kind": {
+            "enum": ["main", "task", "isr"]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

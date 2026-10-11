@@ -1,5 +1,17 @@
 # Changelog
 
+
+## 6.3.0 — 2026-10-11
+
+
+- Add global compile-out and optional trace/ISR/scheduler/flow feature gates; disabled instrumentation does not evaluate arguments.
+- Add a bounded, allocation-free trace recorder and CRC-protected wire-v2 protocol, preserving legacy DATA v1.
+- Add a fair transport multiplexer with partial-write, backpressure and borrowed-buffer ownership handling.
+- Add the CLI and optional Qt configurator, immutable hashed generations, GCC/CMake/PlatformIO exports and generated trace/runtime wiring.
+- Include shared protocol fixtures and executable generated-code regression tests.
+- Trace features default off. ISR and scheduler hardware coverage depends on an independently validated application port; no hardware timing or ISR-safety certification is claimed.
+- Trace visualization requires a KymoStudio build with wire-v2 trace support. Legacy scalar/XYZ telemetry remains available.
+
 ## 6.2.3
 
 - Prepare the PlatformIO Registry release under `codename666/KymoCore`.

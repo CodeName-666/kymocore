@@ -1,0 +1,54 @@
+# KymoTrace wire protocol v2
+
+This file is normative for Core and Studio. All integers are unsigned little-endian unless stated. Wire version is 2. No target port capability is implied by this format.
+
+## Envelope
+
+A frame is `A5 5A | descriptor:u8 | kind:u8 | payload_len:u16 | flags:u16 | session_id:u64 | packet_seq:u32 | header_crc:u16 | payload | frame_crc:u16`. The fixed header is 22 bytes and total frame size is `24 + payload_len`. Descriptor is `0x80`; flags are zero. Header CRC16/CCITT-FALSE covers descriptor through packet_seq (bytes 2..19). Frame CRC16/CCITT-FALSE covers bytes 2 through the payload, including header CRC. CRC parameters: poly `0x1021`, init `0xffff`, no reflection, xorout 0. Maximum frame size is 240 bytes; transports may advertise smaller limits, minimum supported v2 frame size is 64 bytes.
+
+Payload kinds: `0x01 SESSION_META`, `0x02 DICTIONARY_FRAGMENT`, `0x03 TRACE_BATCH`, `0x04 DATA_V1`, `0x05 HEALTH`, `0x06 SESSION_END`. Unknown kinds are skipped only after envelope CRC validation.
+
+## Fragmented administrative records
+
+SESSION_META, DICTIONARY_FRAGMENT, HEALTH and SESSION_END use a common 18-byte prefix: `schema:u8=1, record_kind:u8 (same as envelope kind), generation:u32, transfer_id:u32, total_len:u32, offset:u32`. It is followed by a contiguous slice of the record bytes. `total_len` includes a trailing CRC32/ISO-HDLC (reflected poly `0xedb88320`, init/xorout `0xffffffff`) encoded little-endian. Offsets address the record including CRC. Fragments may be repeated; exact duplicates are harmless, conflicting overlaps invalidate that transfer. A receiver commits only after all bytes and CRC validate. At 64-byte MTU there are 22 data bytes per admin fragment.
+
+SESSION_META record body is canonical UTF-8 JSON (no BOM or trailing whitespace, sorted keys, no insignificant spaces; large frequencies are decimal strings). Required keys: `schema_version`, `wire_version`, `event_schema_version`, `device_id`, `build_id`, `dictionary_hash`, `core_count`, `clock`, `features`, `port_capabilities`. The clock object's domain field is `clock_domain_id`. `dictionary_hash` is lowercase SHA-256 of the exact canonical dictionary JSON bytes excluding its CRC32 trailer. `session_id` is taken from the envelope.
+
+DICTIONARY_FRAGMENT body is canonical UTF-8 JSON with `schema_version`, `generation`, `symbols`, and `contexts`. Symbol entries have unique `id` in 1..65535, `name`, and `kind` (`function`, `scope`, or `marker`). Context entries have unique nonzero `id` in 1..4294967294, `name`, and `kind` (`main`, `task`, or `isr`). Names are at most 128 UTF-8 bytes. Context 0 is reserved for unknown and is omitted.
+
+HEALTH body: schema:u8=1, core_count:u8, reserved:u16=0, then one 32-byte entry per core: `core_id:u8, flags:u8 (bit0 ring-empty-at-settlement), ring_used:u16, high_water:u16, reserved:u16=0, producer_next_seq:u32, settled_through_seq:u32, drops:u32, errors:u32, settled_before_ticks:u64`. The settled sequence/barrier accounts for every earlier attempt (record forwarded or drop accounted); producer_next_seq alone is not a loss barrier. `settled_before_ticks` means all records with timestamp strictly less than this tick have settled.
+
+SESSION_END body: schema:u8=1, core_count:u8, reserved:u16=0, then one 24-byte entry per core: `core_id:u8, reserved[3]=0, producer_next_seq:u32, settled_through_seq:u32, drops:u32, settled_before_ticks:u64`. Both sequence values are exclusive frontiers: `N` means every producer attempt with sequence less than `N` has been accounted for, either as a forwarded event or a drop; `producer_next_seq == settled_through_seq` is required at session end. The application must quiesce all producers before queuing SESSION_END. Missing SESSION_END means the capture is incomplete.
+
+## Trace batch
+
+Batch prefix is `event_schema_version:u8=1, event_count:u8, clock_domain_id:u16`. Each event is exactly 32 bytes, serialized fieldwise: `timestamp_ticks:u64, record_seq:u32, context_id:u32, context_seq:u32, symbol_id:u16, depth:u16, event_type:u8, core_id:u8, flags:u16, arg:u32`. No native struct is copied to the wire. Unknown event types are retained/skipped conservatively, never treated as calls.
+
+Event values: ENTER=1, EXIT=2, MARK=3, ISR_ENTER=4, ISR_EXIT=5, CONTEXT_RESET=6; TASK_CREATE=0x20, TASK_END=0x21, TASK_SWITCH=0x22, CORE_STATE=0x23; FLOW_SEND=0x30 and FLOW_RECEIVE=0x31. TASK_CREATE/END use context_id for the task and arg for its generation. TASK_SWITCH uses context_id for the outgoing context (0 means unknown/idle) and arg for the incoming context. CORE_STATE uses context_id for the known running context (0 unknown) and arg 0=unknown, 1=running task, 2=idle; RECOVERY marks a trusted checkpoint after a gap. These events are explicit application records; no scheduler integration or complete CPU coverage is implied. FLOW_SEND/RECEIVE use context_id for source/destination context, optional symbol_id, and arg for the correlation ID. Flags: ROOT_BOUNDARY=0x0001 (ENTER only and only if target depth was zero), CONTEXT_INVALID=0x0002, ARG_VALID=0x0004, RECOVERY=0x0008; all other bits reserved. MARK arg carries its value; ISR arg carries interrupted/restored context; CONTEXT_RESET has depth zero and arg new context generation. ENTER depth is after push; EXIT depth before pop. Recorder logical state advances even if the bounded ring drops a record.
+
+## DATA_V1 and ordering
+
+DATA_V1 payload bytes are an unchanged complete legacy Kymo DATA-v1 frame. Trace mux serializes physical writes, preserving byte ownership while busy. DATA fairness and event ordering are transport concerns; administrative health barriers cannot pass older staged/ring events. No API in this protocol alone proves a hardware port's ISR safety or clock quality.
+
+## Core recorder and mux contract
+
+The recorder uses caller-owned fixed storage. Resource settings are compile-time macros: `KYMO_TRACE_EVENTS_PER_CORE` (power of two, 16..4096; default 64), `KYMO_TRACE_CORE_COUNT` (1..2; default 1), `KYMO_TRACE_MAX_CONTEXTS` (1..256; default 16), `KYMO_TRACE_MAX_DEPTH` (1..255; default 32), and `KYMO_TRACE_MAX_ISR_DEPTH` (1..16; default 8). ISR state is absent when ISR tracing is ineffective. Event rings, record sequences, drops, and error counts are per core. Context depth/sequence state is shared by ID so task migration keeps identity; contexts must not run concurrently on two cores.
+
+The application supplies monotonic ticks, core ID, current context, and optional paired critical-section callbacks. If callbacks are absent, the application must serialize every recorder access and hooks must not run concurrently. A supplied callback is not presumed ISR-safe; the application adapter must establish that property for its exact target. Hooks perform no allocation, formatting, or transport work. Ring overflow drops the new record but still advances sequence and logical scope state. Depth overflow and symbol mismatch invalidate that context until its logical scopes are unwound and the application explicitly confirms a `CONTEXT_RESET`; sequence numbers remain monotone across reset.
+
+The mux is serviced from one application context. `write_frame` accepts a prefix of the supplied bytes; zero means backpressure and a count larger than requested latches a fault. For whole-message transports, return the full length or zero. For asynchronous borrowed-buffer transports, keep `is_busy` true until the frame bytes are no longer referenced; the mux preserves the frame unchanged until that release. Partial acceptance resumes from the first unaccepted byte. DATA frames are copied through the one-slot `KymoTraceDataAdapter`; a full slot returns zero to the existing Kymo sender, preserving its pending frame. The scheduler rotates metadata, trace batches, and DATA lanes. A periodic HEALTH snapshot is queued only after prior transport ownership is released and all trace rings are empty; its settled sequence accounts for producer records and drops before that barrier.
+
+`KymoTraceMux_Service` may batch up to six fixed events, constrained by the configured MTU and optional `max_batch_events`. At a 64-byte MTU this yields one event per batch; at 240 bytes it yields at most six. Administrative bodies are copied into a bounded configurable staging area (`KYMO_TRACE_ADMIN_RECORD_MAX`, default 512 bytes including CRC32), then fragmented to fit the selected MTU.
+
+## Shared fixtures
+
+`test/fixtures/trace_protocol_vectors.json` contains canonical envelope vectors consumed by native and Studio tests. Hex strings are wire bytes. Fixture values are normative and independent of host endianness.
+
+## Configurator output
+
+An enabled trace profile emits `kymo_trace_metadata.h`, `kymo_trace_metadata.json`, and `kymo_trace_dictionary.json`. The JSON files contain canonical bodies without the CRC trailer. The generated C-compatible header exposes `kymo_trace_session_metadata` and `kymo_trace_dictionary` byte arrays and lengths for `KymoTraceMux_QueueAdmin`; the mux appends the CRC32 trailer. `KYMO_TRACE_DICTIONARY_SHA256` is the hash of the exact dictionary JSON body. The profile's session callback is declared in the header but remains implemented by the application. Ring, context, depth, ISR nesting, and core-count resource macros are emitted into `kymo_user_config.h`.
+
+The generated `kymo_generated_config.cpp` defines persistent recorder, mux, and one-slot DATA adapter objects. Applications call `kymo_generated_trace_init(user)` once after initializing their port, then call `kymo_generated_trace_service()` cyclically. The generated service queues SESSION_META before DICTIONARY and drains within the configured byte/event bounds. Callback contracts are: `clock: uint64_t(void *)`, `core_id: uint8_t(void *)`, `current_context: uint32_t(void *)`, optional paired critical callbacks `void(void *)`, `session_id: uint64_t(void)`, and `trace_write: size_t(void *, const uint8_t *, size_t)` returning accepted prefix bytes. `transport_busy: uint8_t(void *)` is required when the trace writer borrows its input buffer after return. In `shared_v2` mode, generated runtime writes enter the DATA adapter and the generated runtime service callback services both KymoTrace and the optional application transport service.
+
+Port capability metadata defaults to false. A project may claim scheduler, ISR, or core-state completeness only through the explicit `trace.port.scheduler_complete`, `trace.port.isr_complete`, and `trace.port.core_state_complete` fields, and only after setting `port.capabilities_verified` following adapter verification. The generator does not infer these guarantees from a port name.
+

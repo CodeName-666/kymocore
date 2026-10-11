@@ -426,7 +426,7 @@ typedef struct {
 
 /** @} */
 
-#if KYMO_ENABLE_RUNTIME || defined(DOXYGEN)
+#if KYMO_EFFECTIVE_RUNTIME || defined(DOXYGEN)
 /** @name Lifecycle
  * @{ */
 /**

@@ -1,5 +1,13 @@
 # KymoCore für PlatformIO veröffentlichen
 
+## Separate development checkout
+
+Library development takes place in `Plotter/KymoCore`, on the official `main`
+branch. `Plotter/KymoProbe/lib/KymoCore` is a consumer checkout pinned to a
+published release tag. Do not develop the library in that consumer checkout.
+Run `python tools/test_package.py` here to validate the exported archive and
+build real Uno/ESP32 consumers before publishing. Then update the Probe pin.
+
 ## Paket und Voraussetzungen
 
 Veröffentlichungseinheit ist dieses Repository **kymocore**. In der Firmware
@@ -39,7 +47,7 @@ Diese Verbraucher installieren ausschließlich das Archiv, keine Repo-Symlinks.
 Der schnelle Modus `--skip-firmware` lässt nur die beiden Boardbuilds aus.
 Buildartefakte und getrennte Verbraucher liegen unter `.pio/package/`.
 
-Ergebnis ist `KymoCore-6.2.3.tar.gz` mit separater SHA256-Datei. Das Archiv
+Ergebnis ist `KymoCore-6.3.0.tar.gz` mit separater SHA256-Datei. Das Archiv
 enthält den aktuellen Arbeitsstand einschließlich neuer, noch uncommitteter
 Dateien. Nach Änderungen neu packen und prüfen. CI prüft das Paket ebenfalls;
 ein lokal erfolgreicher Lauf beweist keinen erfolgreichen Remote-CI-Lauf.
@@ -52,7 +60,7 @@ keine Abhängigkeit der Library oder des Paketchecks.
 
 1. PlatformIO-Account oder Organisation und Schreibberechtigung bestimmen.
    GitHub-Owner und PlatformIO-Owner müssen nicht identisch sein.
-2. Mit `pio pkg show codename666/KymoCore@6.2.3` prüfen, ob die Version schon
+2. Mit `pio pkg show codename666/KymoCore@6.3.0` prüfen, ob die Version schon
    existiert. Netzwerk- oder Authentifizierungsfehler beweisen keine freie Version.
    Ein einmal veröffentlichtes Name-/Versionspaar lässt sich nicht erneut
    verwenden, auch nicht nach dem Löschen. Bei Bedarf beide Manifeste,
@@ -81,11 +89,11 @@ anmelden und das geprüfte Archiv veröffentlichen:
 
 ```sh
 pio account login
-pio pkg publish .pio/package/KymoCore-6.2.3.tar.gz --owner codename666 --type library
+pio pkg publish .pio/package/KymoCore-6.3.0.tar.gz --owner codename666 --type library
 ```
 
 Danach die Registry-Seite und Bilder öffnen, `pio pkg show` prüfen und in einem
-frischen Projekt `codename666/KymoCore @ 6.2.3` installieren. Das validiert die
+frischen Projekt `codename666/KymoCore @ 6.3.0` installieren. Das validiert die
 Registry-Auslieferung zusätzlich zum bereits geprüften lokalen Archiv.
 
 Hardwaretests sind gesondert nötig: Flashen, Live-Übertragung, DMA/IRQ, USB und

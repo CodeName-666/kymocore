@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 6.2.3" src="https://img.shields.io/badge/version-6.2.3-7C5CFF">
+  <img alt="Version 6.3.0" src="https://img.shields.io/badge/version-6.3.0-7C5CFF">
   <img alt="Lizenz GPLv3 oder kommerziell" src="https://img.shields.io/badge/Lizenz-GPLv3%20%7C%20kommerziell-15123A">
   <img alt="C++11 mit C-API" src="https://img.shields.io/badge/C%2B%2B11-C--API-A78BFA">
   <img alt="Plattformen" src="https://img.shields.io/badge/Arduino%20%C2%B7%20ESP32%20%C2%B7%20STM32-PlatformIO-FDE047">
@@ -26,6 +26,15 @@
 ---
 
 ## Worum geht es?
+
+Der optionale [Kymo-Konfigurator](tools/configurator/README.de.md) bearbeitet
+versionierte Projektprofile über Qt Widgets oder eine Qt-freie CLI. Erzeugte
+Konfigurationsstände lassen sich ohne Python-Generator und ohne Qt kompilieren.
+Compilerdefinitionen haben Vorrang vor dem Projektheader und den Bibliotheksvorgaben.
+`KYMO_ENABLED=0` schaltet die Instrumentierung aus; anwendungseigene Telemetrieressourcen
+müssen mit den effektiven Feature-Makros geschützt werden. Die Fassade liegt in
+`kymo_instrumentation.h`. Ungeschützte direkte API-Aufrufe werden im Off-Build
+bewusst als Übersetzungsfehler erkannt.
 
 Wer Sensoren auswertet, einen Regler einstellt oder einen Motor ansteuert, will
 **sehen, was im Mikrocontroller gerade passiert**: sofort und nicht erst nach
@@ -84,7 +93,7 @@ In der `platformio.ini` deines Projekts eintragen:
 
 ```ini
 lib_deps =
-    codename666/KymoCore @ 6.2.3
+    codename666/KymoCore @ 6.3.0
 ```
 
 ### Vollständiges Beispiel für Arduino und ESP32

@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 6.2.3" src="https://img.shields.io/badge/version-6.2.3-7C5CFF">
+  <img alt="Version 6.3.0" src="https://img.shields.io/badge/version-6.3.0-7C5CFF">
   <img alt="License GPLv3 or commercial" src="https://img.shields.io/badge/License-GPLv3%20%7C%20commercial-15123A">
   <img alt="C++11 with C API" src="https://img.shields.io/badge/C%2B%2B11-C--API-A78BFA">
   <img alt="Platforms" src="https://img.shields.io/badge/Arduino%20%C2%B7%20ESP32%20%C2%B7%20STM32-PlatformIO-FDE047">
@@ -45,6 +45,16 @@ as curves, XY traces or in 3D.
 </p>
 
 ## What KymoCore can do
+
+### Project configuration and production builds
+
+The optional [Kymo configurator](tools/configurator/README.md) provides a
+Qt Widgets editor and a Qt-free CLI for versioned project profiles. Generated
+configuration snapshots can be compiled without running Python or installing Qt.
+Compiler definitions override the project header, which overrides library defaults.
+Use `KYMO_ENABLED=0` for production and guard application-owned telemetry resources
+with the effective feature macros. Include `kymo_instrumentation.h` for compile-out
+instrumentation; unguarded low-level API calls deliberately fail in an off build.
 
 | | |
 |---|---|
@@ -84,7 +94,7 @@ Add this to your project's `platformio.ini`:
 
 ```ini
 lib_deps =
-    codename666/KymoCore @ 6.2.3
+    codename666/KymoCore @ 6.3.0
 ```
 
 ### Complete example for Arduino and ESP32

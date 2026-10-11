@@ -1,5 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
  * Copyright (c) 2026 Christof Seidel */
+#include "kymo_features.h"
+#if KYMO_ENABLED
 #include "kymo_runtime.h"
 #if KYMO_ENABLE_RUNTIME
 #include <string.h>
@@ -162,3 +164,5 @@ KymoStatus Kymo_Main(KymoContext *context)
 }
 
 #endif /* KYMO_ENABLE_RUNTIME */
+
+#endif /* KYMO_ENABLED */

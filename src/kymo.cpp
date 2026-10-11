@@ -1,5 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
  * Copyright (c) 2026 Christof Seidel */
+#include "kymo_features.h"
+#if KYMO_ENABLED
 #include "kymo.h"
 
 #if KYMO_ENABLE_CPP
@@ -200,3 +202,5 @@ bool Kymo::flush()
 }
 
 #endif /* KYMO_ENABLE_CPP */
+
+#endif /* KYMO_ENABLED */

@@ -248,7 +248,7 @@ typedef struct
 
 /** @name Codec operations
  * @{ */
-#if KYMO_ENABLE_CRC || KYMO_ENABLE_DECODER || defined(DOXYGEN)
+#if KYMO_ENABLED && (KYMO_ENABLE_CRC || KYMO_ENABLE_DECODER || defined(DOXYGEN))
 /**
  * @brief Calculate CRC-8/ATM over a byte range.
  *
@@ -263,6 +263,8 @@ typedef struct
  */
 uint8_t kymo_crc8(const uint8_t *data, size_t length);
 #endif
+
+#if KYMO_ENABLED
 
 /**
  * @brief Encode a validated point into a caller-owned byte buffer.
@@ -283,7 +285,7 @@ size_t kymo_encode_data(const KymoDataPoint *point,
                            uint8_t *output,
                            size_t output_capacity);
 
-#if KYMO_ENABLE_DECODER || defined(DOXYGEN)
+#if KYMO_ENABLED && (KYMO_ENABLE_DECODER || defined(DOXYGEN))
 /**
  * @brief Validate and decode exactly one complete binary frame.
  *
@@ -317,6 +319,8 @@ int kymo_decode_data(const uint8_t *frame,
  */
 size_t kymo_frame_length(uint8_t descriptor);
 /** @} */
+
+#endif /* KYMO_ENABLED */
 
 #ifdef __cplusplus
 }

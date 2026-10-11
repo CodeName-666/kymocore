@@ -1,8 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/schema/library.json",
   "name": "KymoCore",
-  "version": "6.2.3",
-  "description": "Portable C++11 telemetry for KymoStudio on Arduino, ESP32 and STM32: heap-free Init/Main scheduling, 9-21 byte binary frames, 256 channels, optional XYZ, timestamps and CRC, with callback-based transport and backpressure handling.",
+  "version": "6.3.0",
+  "description": "Portable heap-free C++11 telemetry and opt-in execution tracing: XYZ/time samples, bounded recorder, wire-v2 transport mux, compile-out controls and a CLI/Qt configurator. Hardware-neutral callback interfaces for Arduino, ESP32, STM32 and other targets.",
   "keywords": [
     "kymotrace",
     "telemetry",
@@ -29,6 +29,10 @@
   "frameworks": "*",
   "platforms": "*",
   "headers": [
+    "kymo_instrumentation.h",
+    "kymo_trace.h",
+    "kymo_trace_protocol.h",
+    "kymo_transport_mux.h",
     "kymo_runtime.h",
     "kymo_protocol.h",
     "kymo.h"
@@ -50,6 +54,8 @@
       "docs/images",
       "docs/GUIDE.md",
       "docs/GUIDE.de.md",
+      "docs/TRACE_PROTOCOL.md",
+      "tools/configurator",
       "LICENSE",
       "COMMERCIAL.md",
       "COMMERCIAL.de.md",
@@ -60,7 +66,14 @@
       "README.md",
       "README.de.md",
       "PROTOCOL.md",
-      "library.properties"
+      "library.properties",
+      "docs/COMPILE_OUT.md"
+    ],
+    "exclude": [
+      "**/__pycache__/**",
+      "**/.pytest_cache/**",
+      "**/*.pyc",
+      "**/*.egg-info/**"
     ]
   },
   "build": {

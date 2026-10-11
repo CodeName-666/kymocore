@@ -1,0 +1,134 @@
+{
+  "active_profile": "development",
+  "bindings": {
+    "busy": "kymo_port_busy",
+    "clock": "kymo_port_clock_ms",
+    "sample": "kymo_port_sample",
+    "service": "kymo_port_service",
+    "write": "kymo_port_write",
+    "write_borrows_buffer": true
+  },
+  "build": {
+    "include_dir": "include",
+    "output_dir": "generated/kymo",
+    "source_dir": "src",
+    "system": "gcc"
+  },
+  "channels": [
+    {
+      "id": 0,
+      "name": "Measurement",
+      "period_ms": 20,
+      "timestamp": false,
+      "x": false,
+      "z": false
+    }
+  ],
+  "contexts": [],
+  "core_config_api_version": 1,
+  "port": {
+    "capabilities_verified": false,
+    "kind": "generic"
+  },
+  "profiles": {
+    "development": {
+      "enabled": true,
+      "features": {
+        "cpp": false,
+        "crc": false,
+        "decoder": false,
+        "runtime": true,
+        "timestamp": false,
+        "x": false,
+        "z": false
+      },
+      "trace": {
+        "bindings": {},
+        "buffer": {
+          "events_per_core": 16,
+          "max_contexts": 16,
+          "max_depth": 32,
+          "max_isr_nesting": 4
+        },
+        "clock": {
+          "counter_bits": 64,
+          "domain_id": 1,
+          "frequency_hz": 1000000,
+          "reset_rule": "new_session",
+          "smp_synchronized": false
+        },
+        "enabled": false,
+        "flow": false,
+        "isr": false,
+        "port": {
+          "core_count": 1,
+          "kind": "generic"
+        },
+        "scheduler": false,
+        "session": {
+          "callback": "kymo_trace_session_id"
+        },
+        "transport": {
+          "drain_bytes": 256,
+          "drain_events": 16,
+          "max_flush_latency_ms": 10,
+          "max_frame_bytes": 128,
+          "mode": "dedicated_trace"
+        }
+      }
+    },
+    "production": {
+      "enabled": false,
+      "features": {
+        "cpp": false,
+        "crc": false,
+        "decoder": false,
+        "runtime": true,
+        "timestamp": false,
+        "x": false,
+        "z": false
+      },
+      "trace": {
+        "bindings": {},
+        "buffer": {
+          "events_per_core": 16,
+          "max_contexts": 16,
+          "max_depth": 32,
+          "max_isr_nesting": 4
+        },
+        "clock": {
+          "counter_bits": 64,
+          "domain_id": 1,
+          "frequency_hz": 1000000,
+          "reset_rule": "new_session",
+          "smp_synchronized": false
+        },
+        "enabled": false,
+        "flow": false,
+        "isr": false,
+        "port": {
+          "core_count": 1,
+          "kind": "generic"
+        },
+        "scheduler": false,
+        "session": {
+          "callback": "kymo_trace_session_id"
+        },
+        "transport": {
+          "drain_bytes": 256,
+          "drain_events": 16,
+          "max_flush_latency_ms": 10,
+          "max_frame_bytes": 128,
+          "mode": "dedicated_trace"
+        }
+      }
+    }
+  },
+  "project_name": "KymoCoreExample",
+  "resources": {
+    "ram_budget_bytes": null,
+    "transport_bytes_per_second": null
+  },
+  "schema_version": 1,
+  "symbols": []
+}

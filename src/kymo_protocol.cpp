@@ -1,5 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
  * Copyright (c) 2026 Christof Seidel */
+#include "kymo_features.h"
+#if KYMO_ENABLED
 #include "kymo_protocol.h"
 #include "common/embedded_bytes.h"
 #if KYMO_ENABLE_CRC || KYMO_ENABLE_DECODER
@@ -187,3 +189,5 @@ int kymo_decode_data(const uint8_t *frame, size_t frame_length,
 }
 
 #endif /* KYMO_ENABLE_DECODER */
+
+#endif /* KYMO_ENABLED */
