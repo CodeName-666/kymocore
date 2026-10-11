@@ -1,5 +1,11 @@
 # Changelog
 
+## 6.3.1 - 2026-10-11
+
+- Improve readability of the configuration, instrumentation, recorder, protocol and mux headers.
+- Separate declarations and enum entries, wrap long API declarations and add spacing between definitions.
+- Formatting-only library changes; API, resource layout and wire behavior are unchanged.
+
 
 ## 6.3.0 — 2026-10-11
 

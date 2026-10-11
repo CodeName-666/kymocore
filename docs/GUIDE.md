@@ -41,7 +41,7 @@ board = esp32dev
 framework = arduino
 monitor_speed = 115200
 lib_deps =
-    codename666/KymoCore @ 6.3.0
+    codename666/KymoCore @ 6.3.1
 ```
 
 For Uno, set `platform = atmelavr@5.3.0` and `board = uno` instead. The library
@@ -52,20 +52,20 @@ pins the version:
 
 ```ini
 lib_deps =
-    https://github.com/CodeName-666/kymocore.git#v6.3.0
+    https://github.com/CodeName-666/kymocore.git#v6.3.1
 ```
 
 Alternatively, build a package from this repository:
 
 ```sh
-pio pkg pack . -o KymoCore-6.3.0.tar.gz
+pio pkg pack . -o KymoCore-6.3.1.tar.gz
 ```
 
 Copy the archive into your project and reference it there:
 
 ```ini
 lib_deps =
-    file://KymoCore-6.3.0.tar.gz
+    file://KymoCore-6.3.1.tar.gz
 ```
 
 Alternatively, copy the complete library folder to `lib/KymoCore` of your own
@@ -243,7 +243,7 @@ bytes into the same stream.
 
 ![Frame fields, descriptor bits and concrete wire examples](images/protocol.png)
 
-Package version 6.3.0, protocol v6.1 and **wire version 1** are different
+Package version 6.3.1, protocol v6.1 and **wire version 1** are different
 things. The normative contract is in [PROTOCOL.md](../PROTOCOL.md).
 
 | Offset | Size | Content |
