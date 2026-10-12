@@ -40,7 +40,7 @@ board = esp32dev
 framework = arduino
 monitor_speed = 115200
 lib_deps =
-    codename666/KymoCore @ 6.3.1
+    codename666/KymoCore @ 6.3.2
 ```
 
 Für Uno stattdessen `platform = atmelavr@5.3.0` und `board = uno` setzen.
@@ -51,20 +51,20 @@ legt die Version fest:
 
 ```ini
 lib_deps =
-    https://github.com/CodeName-666/kymocore.git#v6.3.1
+    https://github.com/CodeName-666/kymocore.git#v6.3.2
 ```
 
 Alternativ aus diesem Repository ein Paket bauen:
 
 ```sh
-pio pkg pack . -o KymoCore-6.3.1.tar.gz
+pio pkg pack . -o KymoCore-6.3.2.tar.gz
 ```
 
 Das Archiv in das eigene Projekt kopieren und dort eintragen:
 
 ```ini
 lib_deps =
-    file://KymoCore-6.3.1.tar.gz
+    file://KymoCore-6.3.2.tar.gz
 ```
 
 Alternativ den vollständigen Library-Ordner nach `lib/KymoCore` des eigenen
@@ -243,7 +243,7 @@ Teilframes dürfen andere Produzenten keine Bytes in denselben Stream mischen.
 
 ![Framefelder, Descriptorbits und konkrete Wire-Beispiele](images/protocol.png)
 
-Paketversion 6.3.1, Protokoll v6.1 und **Wire-Version 1** sind unterschiedliche
+Paketversion 6.3.2, Protokoll v6.1 und **Wire-Version 1** sind unterschiedliche
 Angaben. Der normative Vertrag steht in [PROTOCOL.md](../PROTOCOL.md).
 
 | Offset | Größe | Inhalt |
@@ -600,10 +600,10 @@ The entire library, including C++ wrappers, has no vendor/SDK dependency or
 conditional target API. It knows only standard C/C++ types, configured callbacks
 and the abstract KymoStream. The millisecond callback always returns uint32_t.
 
-Hardware adapters belong to the application. Optional reference adapters are
-outside the package, in `examples/common/kymo_arduino.h` and
-`examples/stm32/adapters/kymo_stm32.h`. The supplied cyclic examples already
-implement hardware access in their own configuration callbacks.
+Hardware adapters belong to the application. The small Arduino examples use
+`examples/common/arduino_serial_config.h` for their callbacks. Larger transport,
+performance and trace applications and optional C++ hardware adapters live in
+KymoProbe; they are not part of this library package.
 
 Migration for the earlier Arduino C++ convenience overload: use
 `PrintStream stream(Serial); Kymo sender(stream);` after including the

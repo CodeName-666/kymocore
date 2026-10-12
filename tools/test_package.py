@@ -61,12 +61,20 @@ def check_archive(archive, destination):
                 "docs/images/architecture.png", "docs/images/transmission.png",
                 "docs/images/protocol.png"]
     required += [str(path.relative_to(LIB)).replace("\\", "/") for path in (LIB / "src").rglob("*") if path.is_file()]
+    # Every standalone example must survive export, including shared adapters
+    # and the immutable generated profiles needed for firmware builds.
+    required += [path.relative_to(LIB).as_posix()
+                 for path in (LIB / "examples").rglob("*")
+                 if path.is_file()
+                 and not any(part in {".pio", ".vscode", "__pycache__"} for part in path.relative_to(LIB).parts)
+                 and path.name != "network_secrets.h"]
     for name in required:
         assert (destination / name).is_file(), f"Missing package file: {name}"
     for path in destination.rglob("*"):
         relative = path.relative_to(destination)
         assert not any(part in {".pio", ".git", "legacy", "Events", "__pycache__"} for part in relative.parts)
         if path.is_file():
+            assert path.name != "network_secrets.h", relative
             assert path.suffix not in {".o", ".exe", ".elf", ".pyc"}, relative
             if path.name != "library.json":
                 assert path.read_bytes() == (LIB / relative).read_bytes(), relative

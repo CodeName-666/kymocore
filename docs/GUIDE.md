@@ -41,7 +41,7 @@ board = esp32dev
 framework = arduino
 monitor_speed = 115200
 lib_deps =
-    codename666/KymoCore @ 6.3.1
+    codename666/KymoCore @ 6.3.2
 ```
 
 For Uno, set `platform = atmelavr@5.3.0` and `board = uno` instead. The library
@@ -52,20 +52,20 @@ pins the version:
 
 ```ini
 lib_deps =
-    https://github.com/CodeName-666/kymocore.git#v6.3.1
+    https://github.com/CodeName-666/kymocore.git#v6.3.2
 ```
 
 Alternatively, build a package from this repository:
 
 ```sh
-pio pkg pack . -o KymoCore-6.3.1.tar.gz
+pio pkg pack . -o KymoCore-6.3.2.tar.gz
 ```
 
 Copy the archive into your project and reference it there:
 
 ```ini
 lib_deps =
-    file://KymoCore-6.3.1.tar.gz
+    file://KymoCore-6.3.2.tar.gz
 ```
 
 Alternatively, copy the complete library folder to `lib/KymoCore` of your own
@@ -243,7 +243,7 @@ bytes into the same stream.
 
 ![Frame fields, descriptor bits and concrete wire examples](images/protocol.png)
 
-Package version 6.3.1, protocol v6.1 and **wire version 1** are different
+Package version 6.3.2, protocol v6.1 and **wire version 1** are different
 things. The normative contract is in [PROTOCOL.md](../PROTOCOL.md).
 
 | Offset | Size | Content |
@@ -600,10 +600,10 @@ The entire library, including C++ wrappers, has no vendor/SDK dependency or
 conditional target API. It knows only standard C/C++ types, configured callbacks
 and the abstract KymoStream. The millisecond callback always returns uint32_t.
 
-Hardware adapters belong to the application. Optional reference adapters are
-outside the package, in `examples/common/kymo_arduino.h` and
-`examples/stm32/adapters/kymo_stm32.h`. The supplied cyclic examples already
-implement hardware access in their own configuration callbacks.
+Hardware adapters belong to the application. The small Arduino examples use
+`examples/common/arduino_serial_config.h` for their callbacks. Larger transport,
+performance and trace applications and optional C++ hardware adapters live in
+KymoProbe; they are not part of this library package.
 
 Migration for the earlier Arduino C++ convenience overload: use
 `PrintStream stream(Serial); Kymo sender(stream);` after including the

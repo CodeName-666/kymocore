@@ -40,4 +40,9 @@ Applies to active first-party C/C++ code, including examples and native tests.
   part of KymoCore style changes.
 - This checkout is the KymoCore development repository. Make library changes here.
 - KymoProbe consumes official release tags through its pinned submodule; do not develop in that consumer checkout.
+- Keep only a few small reference examples under `examples/` here.
+  Larger transport, maximum-performance and feature demonstrations belong to
+  KymoProbe and are selected through its central application main.
+  KymoProbe retains its examples against its pinned official release; do not
+  change library source or the consumer's library pin for demo development.
 - Run `python test/compile_out_test.py`, `python test/trace_core_test.py`, the configurator pytest suite, and `python tools/test_package.py` before a release.

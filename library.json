@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/schema/library.json",
   "name": "KymoCore",
-  "version": "6.3.1",
+  "version": "6.3.2",
   "description": "Portable heap-free C++11 telemetry and opt-in execution tracing: XYZ/time samples, bounded recorder, wire-v2 transport mux, compile-out controls and a CLI/Qt configurator. Hardware-neutral callback interfaces for Arduino, ESP32, STM32 and other targets.",
   "keywords": [
     "kymotrace",
@@ -25,7 +25,7 @@
     "url": "https://github.com/CodeName-666/kymocore.git"
   },
   "license": "GPL-3.0-only",
-  "homepage": "https://github.com/CodeName-666/kymocore",
+  "homepage": "https://kymotrace.de",
   "frameworks": "*",
   "platforms": "*",
   "headers": [
@@ -43,6 +43,22 @@
       "base": "examples/basic",
       "files": [
         "main.cpp",
+        "README.md"
+      ]
+    },
+    {
+      "name": "multi sensor example",
+      "base": "examples/arduino/multi_sensor_example",
+      "files": [
+        "platformio.ini",
+        "README.md"
+      ]
+    },
+    {
+      "name": "simple analog example",
+      "base": "examples/arduino/simple_analog_example",
+      "files": [
+        "platformio.ini",
         "README.md"
       ]
     }
@@ -70,6 +86,8 @@
       "docs/COMPILE_OUT.md"
     ],
     "exclude": [
+      "**/.pio/**",
+      "**/.vscode/**",
       "**/__pycache__/**",
       "**/.pytest_cache/**",
       "**/*.pyc",

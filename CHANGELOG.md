@@ -1,5 +1,12 @@
 # Changelog
 
+## 6.3.2 - 2026-10-12
+
+- Add small Arduino reference examples (multi sensor, simple analog) and an examples overview.
+- Set the package homepage to https://kymotrace.de.
+- Exclude `.pio` and `.vscode` folders from the exported package.
+- Library code, API and wire behavior are unchanged.
+
 ## 6.3.1 - 2026-10-11
 
 - Improve readability of the configuration, instrumentation, recorder, protocol and mux headers.

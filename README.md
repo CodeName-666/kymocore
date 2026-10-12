@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 6.3.1" src="https://img.shields.io/badge/version-6.3.1-7C5CFF">
+  <img alt="Version 6.3.2" src="https://img.shields.io/badge/version-6.3.2-7C5CFF">
   <img alt="License GPLv3 or commercial" src="https://img.shields.io/badge/License-GPLv3%20%7C%20commercial-15123A">
   <img alt="C++11 with C API" src="https://img.shields.io/badge/C%2B%2B11-C--API-A78BFA">
   <img alt="Platforms" src="https://img.shields.io/badge/Arduino%20%C2%B7%20ESP32%20%C2%B7%20STM32-PlatformIO-FDE047">
@@ -94,7 +94,7 @@ Add this to your project's `platformio.ini`:
 
 ```ini
 lib_deps =
-    codename666/KymoCore @ 6.3.1
+    codename666/KymoCore @ 6.3.2
 ```
 
 ### Complete example for Arduino and ESP32
@@ -187,9 +187,8 @@ is in [examples/basic](examples/basic/README.md).
 
 ## Supported platforms
 
-KymoCore is platform-independent. With the examples from
-[kymoprobe](https://github.com/CodeName-666/kymoprobe), these targets have been
-built and checked:
+KymoCore is platform-independent. The larger hardware examples in
+[KymoProbe](https://github.com/CodeName-666/kymoprobe) cover these targets:
 
 | Family | Boards | Transport in the example |
 |---|---|---|
@@ -217,6 +216,7 @@ The complete specification with example frames is in [PROTOCOL.md](PROTOCOL.md).
 - **[Guide and API reference](docs/GUIDE.md):** configuration, scheduling, transports and sizing
 - **[Protocol](PROTOCOL.md):** byte layout, CRC, example frames
 - **[Portable example](examples/basic/README.md):** runs on the PC without hardware
+- **[Small reference examples](examples/README.md):** portable Init/Main and Arduino waveform sketches
 - **[Changelog](CHANGELOG.md)** · **[Publishing](PUBLISHING.md)** (German) · **[Contributing](CONTRIBUTING.md)**
 
 ## License
