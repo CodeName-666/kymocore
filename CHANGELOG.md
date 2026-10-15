@@ -1,6 +1,6 @@
 # Changelog
 
-## 6.4.0 - unreleased
+## 6.4.0 - 2026-10-15
 
 - Add `KYMO_FLAG_TIMESTAMP_US` (descriptor bit 4, data message type 01): the timestamp
   field carries uint32 microseconds instead of milliseconds. Frame layout and length are

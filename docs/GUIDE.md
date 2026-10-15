@@ -41,7 +41,7 @@ board = esp32dev
 framework = arduino
 monitor_speed = 115200
 lib_deps =
-    codename666/KymoCore @ 6.3.2
+    codename666/KymoCore @ 6.4.0
 ```
 
 For Uno, set `platform = atmelavr@5.3.0` and `board = uno` instead. The library
@@ -52,20 +52,20 @@ pins the version:
 
 ```ini
 lib_deps =
-    https://github.com/CodeName-666/kymocore.git#v6.3.2
+    https://github.com/CodeName-666/kymocore.git#v6.4.0
 ```
 
 Alternatively, build a package from this repository:
 
 ```sh
-pio pkg pack . -o KymoCore-6.3.2.tar.gz
+pio pkg pack . -o KymoCore-6.4.0.tar.gz
 ```
 
 Copy the archive into your project and reference it there:
 
 ```ini
 lib_deps =
-    file://KymoCore-6.3.2.tar.gz
+    file://KymoCore-6.4.0.tar.gz
 ```
 
 Alternatively, copy the complete library folder to `lib/KymoCore` of your own
@@ -243,7 +243,7 @@ bytes into the same stream.
 
 ![Frame fields, descriptor bits and concrete wire examples](images/protocol.png)
 
-Package version 6.3.2, protocol v6.1 and **wire version 1** are different
+Package version 6.4.0, protocol v6.2 and **wire version 1** are different
 things. The normative contract is in [PROTOCOL.md](../PROTOCOL.md).
 
 | Offset | Size | Content |
@@ -377,7 +377,7 @@ delivers telemetry; the app handles reception and visualisation.
 
 The protocol does not transmit channel names, units or sensor configurations.
 This mapping stays with the application and the app. A back channel for
-control commands is not part of v6.1. The app can additionally receive legacy
+control commands is not part of v6.2. The app can additionally receive legacy
 JSON; KymoCore encodes binary.
 
 ## Package structure and checks
@@ -623,7 +623,7 @@ from its new location. Recompile all C++ consumers after this interface cleanup.
 
 ## Compatibility and verification
 
-The [wire contract](../PROTOCOL.md) is **v6.1 / wire version 1**. CRC calculation
+The [wire contract](../PROTOCOL.md) is **v6.2 / wire version 1**. CRC calculation
 is **disabled by default** for C and C++ senders. Descriptor bit 0 marks NO_CRC;
 the final byte remains present as a zero trailer, keeping frames at 9–21 bytes.
 Decoders ignore that trailer for NO_CRC and still validate legacy CRC frames.
