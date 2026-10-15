@@ -10,13 +10,24 @@
 #include <math.h>
 
 /*******************************************************************************
+ * flags_valid
+ ******************************************************************************/
+/* The microsecond unit is meaningless without a timestamp field. */
+static uint8_t flags_valid(uint8_t flags)
+{
+    return (uint8_t)(emb_u8_only_bits(flags, KYMO_CODEC_FLAGS) &&
+        (!emb_u8_has_any(flags, KYMO_FLAG_TIMESTAMP_US) ||
+         emb_u8_has_any(flags, KYMO_FLAG_TIMESTAMP)));
+}
+
+/*******************************************************************************
  * point_valid
  ******************************************************************************/
 static uint8_t point_valid(const KymoDataPoint *point)
 {
     uint8_t valid = 0;
     if (point != nullptr) {
-        valid = (uint8_t)(emb_u8_only_bits(point->flags, KYMO_SUPPORTED_FLAGS) &&
+        valid = (uint8_t)(flags_valid(point->flags) &&
             isfinite(point->value)
 #if KYMO_ENABLE_X
             && (!emb_u8_has_any(point->flags, KYMO_FLAG_X) || isfinite(point->x))
@@ -49,8 +60,8 @@ size_t kymo_frame_length(uint8_t descriptor)
     size_t length = 0;
     if ((emb_u8_mask(descriptor, KYMO_DESCRIPTOR_VERSION_MASK) == KYMO_DESCRIPTOR_DATA) &&
         !emb_u8_has_any(descriptor, KYMO_DESCRIPTOR_RESERVED_MASK) &&
-        emb_u8_only_bits(emb_u8_mask(descriptor, KYMO_ALLOWED_FLAGS),
-                         KYMO_SUPPORTED_FLAGS)) {
+        flags_valid(emb_u8_mask(descriptor, EMB_U8_OR(KYMO_ALLOWED_FLAGS,
+                                                      KYMO_FLAG_TIMESTAMP_US)))) {
         length = KYMO_FRAME_MIN_SIZE;
 #if KYMO_ENABLE_X
         if (emb_u8_has_any(descriptor, KYMO_FLAG_X)) {
@@ -148,7 +159,7 @@ static void decode_payload(const uint8_t *frame, KymoDataPoint *point)
 {
     size_t offset = 4;
     point->id = frame[3];
-    point->flags = emb_u8_mask(frame[2], KYMO_ALLOWED_FLAGS);
+    point->flags = emb_u8_mask(frame[2], EMB_U8_OR(KYMO_ALLOWED_FLAGS, KYMO_FLAG_TIMESTAMP_US));
 #if KYMO_ENABLE_X
     if (emb_u8_has_any(point->flags, KYMO_FLAG_X)) {
         point->x = emb_read_f32_le(frame + offset);

@@ -1,4 +1,4 @@
-# Kymotrace Compact Binary Protocol v6.1
+# Kymotrace Compact Binary Protocol v6.2
 
 This document is the authoritative wire-format contract between embedded
 senders and KymoStudio. The primary format is compact binary. KymoStudio still
@@ -21,7 +21,7 @@ See the [illustrated integration guide](README.md) for setup and transport owner
 - optional CRC protection per measurement, disabled by default
 
 The protocol transports telemetry from a device to KymoStudio. A command or
-configuration protocol in the opposite direction is not part of v6.1.
+configuration protocol in the opposite direction is not part of v6.2.
 
 ## Binary data frame
 
@@ -34,11 +34,11 @@ Offset  Size  Field
 4       0/4   X, IEEE-754 float32 little-endian
 4/8     4     Y/value, IEEE-754 float32 little-endian
 ...     0/4   Z, IEEE-754 float32 little-endian
-...     0/4   Relative timestamp in milliseconds, uint32 little-endian
+...     0/4   Relative timestamp in ms (or µs, bit 4), uint32 little-endian
 last    1     CRC-8/ATM or zero trailer when NO_CRC is set
 ```
 
-Payload order is always `X?`, `Y`, `Z?`, `timestamp_ms?`. Y is the only
+Payload order is always `X?`, `Y`, `Z?`, `timestamp?`. Y is the only
 mandatory numeric field. Optional fields are indicated by the descriptor, so
 no length byte is necessary.
 
@@ -46,7 +46,8 @@ no length byte is necessary.
 
 ```text
 Bit 7..6  Wire version: 01
-Bit 5..4  Message type: 00 (data point)
+Bit 5     Message type: 0 (data point)
+Bit 4     Timestamp unit: 0 = milliseconds, 1 = microseconds (requires bit 1)
 Bit 3     X present
 Bit 2     Z present
 Bit 1     Timestamp present
@@ -56,6 +57,12 @@ Bit 0     NO_CRC: 1 = CRC disabled, 0 = CRC-8/ATM present
 Valid data descriptors are `0x40` through `0x4F`. Even descriptors retain
 the v6.0 CRC-protected layout; odd descriptors disable CRC. Unsupported
 versions and message types are rejected. Frame sizes are identical in both modes.
+
+Since v6.2, descriptors `0x52`/`0x53`, `0x56`/`0x57`, `0x5A`/`0x5B` and
+`0x5E`/`0x5F` (data message type 01) carry the same layouts with the timestamp
+in microseconds. Bit 4 without bit 1 (`0x50`, `0x51`, `0x54`, `0x55`, `0x58`,
+`0x59`, `0x5C`, `0x5D`) is invalid. Use one unit per connection: receivers
+expect a monotonic device clock and treat a unit change as a clock restart.
 
 ### Frame sizes
 
@@ -71,7 +78,9 @@ versions and message types are rejected. Frame sizes are identical in both modes
 - Channel ID is an unsigned byte, 0â€“255.
 - X, Y, and Z are finite IEEE-754 binary32 values. NaN and infinity are invalid.
 - Timestamp is an unsigned 32-bit count of milliseconds relative to the sender
-  start time. It wraps after approximately 49.7 days.
+  start time. It wraps after approximately 49.7 days. With bit 4 it counts
+  microseconds and wraps after approximately 71.6 minutes; KymoStudio continues
+  the time axis across a wrap when the next value lies within one second past it.
 - Multi-byte values are little-endian regardless of MCU endianness.
 - Binary32 intentionally trades decimal text precision for fixed size and fast
   MCU encoding. It provides roughly seven significant decimal digits.
@@ -120,6 +129,10 @@ Bytes: A5 5A 4F 03 00 00 A0 3F 00 00 20 C0 00 00 10 41 D2 04 00 00 00
 Size:  21
 ```
 
+Point: id=3, y=-2.5, timestamp=1234567 µs
+Bytes: A5 5A 53 03 00 00 20 C0 87 D6 12 00 00
+Size:  13
+
 CRC enabled (unchanged v6.0 vectors):
 
 ```text
@@ -130,7 +143,17 @@ Size:  9
 Point: id=3, x=1.25, y=-2.5, z=9.0, timestamp=1234 ms
 Bytes: A5 5A 4E 03 00 00 A0 3F 00 00 20 C0 00 00 10 41 D2 04 00 00 89
 Size:  21
+
+Point: id=3, y=-2.5, timestamp=1234567 µs
+Bytes: A5 5A 52 03 00 00 20 C0 87 D6 12 00 97
+Size:  13
 ```
+
+Microsecond timestamps are encoded with `kymo_encode_data` and
+`KYMO_FLAG_TIMESTAMP | KYMO_FLAG_TIMESTAMP_US` on a `KymoDataPoint`
+(`KYMO_ENABLE_TIMESTAMP=1`); `KymoDataPoint::timestamp_ms` then holds µs.
+The cyclic runtime and C++ sender keep millisecond clocks and reject the flag.
+Python encoding uses `encode_data_point(point, timestamp_us=True)`.
 
 ## Embedded sender interface
 
@@ -236,6 +259,8 @@ format. New embedded firmware should emit binary v6.
 
 ## Versioning
 
+- Protocol v6.2 / wire version 1: microsecond timestamps via data message type 01
+  (descriptor bit 4); unchanged field order and sizes, older receivers reject it
 - Protocol v6.1 / wire version 1: NO_CRC descriptor bit, disabled CRC by default;
   unchanged field order and sizes, continued acceptance of protected v6.0 frames
 - Protocol v6.0 / wire version 1: compact binary frames; JSON v5 receive fallback

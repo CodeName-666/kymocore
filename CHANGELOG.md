@@ -1,5 +1,15 @@
 # Changelog
 
+## 6.4.0 - unreleased
+
+- Add `KYMO_FLAG_TIMESTAMP_US` (descriptor bit 4, data message type 01): the timestamp
+  field carries uint32 microseconds instead of milliseconds. Frame layout and length are
+  unchanged. Valid only together with `KYMO_FLAG_TIMESTAMP`; available with
+  `KYMO_ENABLE_TIMESTAMP=1` through `kymo_encode_data`/`kymo_decode_data` (`KYMO_CODEC_FLAGS`).
+- The channel runtimes keep millisecond clocks and reject the µs flag; `KYMO_ALLOWED_FLAGS`
+  and `KYMO_SUPPORTED_FLAGS` are unchanged.
+- `KYMO_DESCRIPTOR_RESERVED_MASK` is now `0x20`. Older receivers reject µs frames.
+
 ## 6.3.2 - 2026-10-12
 
 - Add small Arduino reference examples (multi sensor, simple analog) and an examples overview.

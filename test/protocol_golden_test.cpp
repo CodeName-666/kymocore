@@ -43,6 +43,9 @@ int main()
         0xA5, 0x5A, KYMO_ENABLE_CRC ? 0x4E : 0x4F, 0x03, 0x00, 0x00, 0xA0, 0x3F,
         0x00, 0x00, 0x20, 0xC0, 0x00, 0x00, 0x10, 0x41,
         0xD2, 0x04, 0x00, 0x00, KYMO_ENABLE_CRC ? 0x89 : 0};
+    static const uint8_t micro_golden[] = {
+        0xA5, 0x5A, KYMO_ENABLE_CRC ? 0x52 : 0x53, 0x03, 0x00, 0x00, 0x20, 0xC0,
+        0x87, 0xD6, 0x12, 0x00, KYMO_ENABLE_CRC ? 0x97 : 0};
 
     uint8_t frame[KYMO_FRAME_MAX_SIZE];
     KymoDataPoint point = {};
@@ -64,6 +67,25 @@ int main()
     assert(decoded.value == point.value);
     assert(decoded.z == point.z);
     assert(decoded.timestamp_ms == point.timestamp_ms);
+
+    KymoDataPoint micro = {};
+    micro.id = 3;
+    micro.flags = KYMO_FLAG_TIMESTAMP | KYMO_FLAG_TIMESTAMP_US;
+    micro.value = -2.5f;
+    micro.timestamp_ms = 1234567u;
+    length = kymo_encode_data(&micro, frame, sizeof(frame));
+    assert(length == sizeof(micro_golden));
+    assert(memcmp(frame, micro_golden, sizeof(micro_golden)) == 0);
+    decoded = {};
+    assert(kymo_decode_data(frame, length, &decoded) == 1);
+    assert(decoded.flags == micro.flags);
+    assert(decoded.timestamp_ms == micro.timestamp_ms);
+
+    /* The unit bit without a timestamp field is rejected on both sides. */
+    micro.flags = KYMO_FLAG_TIMESTAMP_US;
+    assert(kymo_encode_data(&micro, frame, sizeof(frame)) == 0u);
+    assert(kymo_frame_length(KYMO_DESCRIPTOR_DATA | KYMO_FLAG_TIMESTAMP_US) == 0u);
+    assert(kymo_frame_length(0x60u) == 0u);
 
     CaptureStream stream;
     Kymo kymo(stream);

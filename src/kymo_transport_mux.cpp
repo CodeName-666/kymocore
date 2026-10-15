@@ -70,7 +70,9 @@ uint8_t validDataFrame(const uint8_t *frame, size_t length)
         size_t expected = KYMO_FRAME_MIN_SIZE;
         if (((descriptor & KYMO_DESCRIPTOR_VERSION_MASK) ==
              KYMO_DESCRIPTOR_DATA) &&
-            ((descriptor & KYMO_DESCRIPTOR_RESERVED_MASK) == 0u)) {
+            ((descriptor & KYMO_DESCRIPTOR_RESERVED_MASK) == 0u) &&
+            (((descriptor & KYMO_FLAG_TIMESTAMP_US) == 0u) ||
+             ((flags & KYMO_FLAG_TIMESTAMP) != 0u))) {
             if ((flags & KYMO_FLAG_X) != 0u) {
                 expected += 4u;
             }

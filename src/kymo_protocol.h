@@ -124,6 +124,20 @@ extern "C" {
 #define KYMO_FLAG_TIMESTAMP 0x02u
 
 /**
+ * @brief Descriptor bit selecting microseconds for the timestamp field.
+ *
+ * @details Occupies message-type bit 4 (data type 01). Valid only together with
+ * KYMO_FLAG_TIMESTAMP; the frame layout and length are unchanged, but
+ * KymoDataPoint::timestamp_ms then carries uint32 microseconds (wraps after
+ * about 71.6 minutes). Not part of KYMO_ALLOWED_FLAGS: the channel runtimes
+ * supply millisecond clocks and reject it. Use it with kymo_encode_data only.
+ * @par Usage
+ * point.flags = KYMO_FLAG_TIMESTAMP | KYMO_FLAG_TIMESTAMP_US;
+ * point.timestamp_ms = micros_since_epoch;
+ */
+#define KYMO_FLAG_TIMESTAMP_US 0x10u
+
+/**
  * @brief Mask of every supported optional payload field.
  *
  * @details Only X, Z and timestamp flags are permitted on the wire. Build-time
@@ -145,6 +159,14 @@ extern "C" {
     (KYMO_ENABLE_Z ? KYMO_FLAG_Z : 0u), \
     (KYMO_ENABLE_TIMESTAMP ? KYMO_FLAG_TIMESTAMP : 0u)))
 
+/**
+ * @brief Flags accepted by the raw codec of this library build.
+ * @details KYMO_SUPPORTED_FLAGS plus KYMO_FLAG_TIMESTAMP_US when timestamps are enabled.
+ * @par Usage
+ * Validate KymoDataPoint::flags before kymo_encode_data.
+ */
+#define KYMO_CODEC_FLAGS EMB_U8_OR(KYMO_SUPPORTED_FLAGS,     (KYMO_ENABLE_TIMESTAMP ? KYMO_FLAG_TIMESTAMP_US : 0u))
+
 
 /**
  * @brief Mask selecting the two wire-version bits.
@@ -158,11 +180,11 @@ extern "C" {
 /**
  * @brief Mask selecting unsupported message-type bits.
  *
- * @details Combines bits 5 and 4. Bit 0 selects NO_CRC and is supported.
+ * @details Bit 5. Bit 4 is KYMO_FLAG_TIMESTAMP_US; bit 0 selects NO_CRC.
  * @par Usage
  * Validate descriptor bytes with emb_u8_has_any.
  */
-#define KYMO_DESCRIPTOR_RESERVED_MASK 0x30u
+#define KYMO_DESCRIPTOR_RESERVED_MASK 0x20u
 
 /**
  * @brief Size in bytes of a Y-only frame.
@@ -204,9 +226,9 @@ typedef struct
      */
     uint8_t id;
     /**
-     * @brief Presence flags for X, Z and timestamp.
+     * @brief Presence flags for X, Z and timestamp, plus the timestamp unit.
      *
-     * @details Input/output; only KYMO_SUPPORTED_FLAGS bits are accepted by this build.
+     * @details Input/output; only KYMO_CODEC_FLAGS bits are accepted by this build.
      * Zero selects Y only. Wire flags remain defined even when their features are disabled.
      * @par Usage
      * point.flags = KYMO_ALLOWED_FLAGS;
@@ -237,9 +259,10 @@ typedef struct
      */
     float z;
     /**
-     * @brief Optional timestamp in milliseconds relative to the sender epoch.
+     * @brief Optional timestamp relative to the sender epoch, in ms or µs.
      *
-     * @details Input/output; used only with KYMO_FLAG_TIMESTAMP. Wraps modulo 2^32.
+     * @details Input/output; used only with KYMO_FLAG_TIMESTAMP. Milliseconds by
+     * default, microseconds with KYMO_FLAG_TIMESTAMP_US. Wraps modulo 2^32.
      * @par Usage
      * Use elapsed milliseconds rather than Unix time.
      */

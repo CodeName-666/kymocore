@@ -255,25 +255,33 @@ things. The normative contract is in [PROTOCOL.md](../PROTOCOL.md).
 | 4 | 0/4 bytes | Optional X |
 | 4 or 8 | 4 bytes | Y, always present |
 | after Y | 0/4 bytes | Optional Z |
-| after Z or Y | 0/4 bytes | Optional time in ms |
+| after Z or Y | 0/4 bytes | Optional time in ms or µs |
 | last byte | 1 byte | CRC-8/ATM or zero trailer |
 
 The payload order is **X? → Y → Z? → time?**. X/Y/Z are finite IEEE-754
 float32 values; NaN and infinity are rejected. Time is an unsigned 32-bit
 millisecond value relative to sender start and wraps after about 49.7 days.
+With the microsecond bit it counts microseconds and wraps after about 71.6 minutes.
 Multi-byte values are little endian: least significant byte first. No packed
 C structures are transmitted directly.
 
 | Descriptor bits | Meaning |
 |---|---|
 | 7–6 | `01` = wire version 1 |
-| 5–4 | `00` = data point |
+| 5 | `0` = data point |
+| 4 | Time unit: 0 = ms, 1 = µs (only with bit 1) |
 | 3 | X present |
 | 2 | Z present |
 | 1 | Timestamp present |
 | 0 | `NO_CRC`: 1 without CRC, 0 with CRC |
 
 `0x40` to `0x4F` are valid: even values with CRC, odd values without CRC.
+`0x52`/`0x53`, `0x56`/`0x57`, `0x5A`/`0x5B` and `0x5E`/`0x5F` are the same layouts
+with microsecond time; `0x50`, `0x54`, `0x58` and `0x5C` (µs without time and
+their NO_CRC variants) are invalid. Set `KYMO_FLAG_TIMESTAMP | KYMO_FLAG_TIMESTAMP_US`
+on a `KymoDataPoint` for `kymo_encode_data`. The channel runtimes use
+millisecond clocks and reject the µs flag. Receivers older than KymoCore 6.4 /
+KymoStudio 2.5 reject µs frames as an unsupported message type.
 Other versions and message types are rejected. Firmware features can restrict
 the supported layouts further.
 

@@ -255,25 +255,33 @@ Angaben. Der normative Vertrag steht in [PROTOCOL.md](../PROTOCOL.md).
 | 4 | 0/4 Bytes | Optionales X |
 | 4 oder 8 | 4 Bytes | Y, immer vorhanden |
 | nach Y | 0/4 Bytes | Optionales Z |
-| nach Z beziehungsweise Y | 0/4 Bytes | Optionale Zeit in ms |
+| nach Z beziehungsweise Y | 0/4 Bytes | Optionale Zeit in ms oder µs |
 | letztes Byte | 1 Byte | CRC-8/ATM oder Null-Trailer |
 
 Die Payload-Reihenfolge ist **X? → Y → Z? → Zeit?**. X/Y/Z sind endliche
 IEEE-754-Float32-Werte; NaN und Unendlich werden abgewiesen. Zeit ist ein
 unsigned 32-Bit-Millisekundenwert relativ zum Senderstart und läuft nach
-ungefähr 49,7 Tagen über. Mehrbytewerte sind Little Endian: niederwertigstes
+ungefähr 49,7 Tagen über. Mit dem Mikrosekundenbit zählt sie µs und läuft
+nach ungefähr 71,6 Minuten über. Mehrbytewerte sind Little Endian: niederwertigstes
 Byte zuerst. Es werden keine gepackten C-Strukturen direkt übertragen.
 
 | Descriptorbits | Bedeutung |
 |---|---|
 | 7–6 | `01` = Wire-Version 1 |
-| 5–4 | `00` = Messpunkt |
+| 5 | `0` = Messpunkt |
+| 4 | Zeiteinheit: 0 = ms, 1 = µs (nur mit Bit 1) |
 | 3 | X vorhanden |
 | 2 | Z vorhanden |
 | 1 | Zeitstempel vorhanden |
 | 0 | `NO_CRC`: 1 ohne CRC, 0 mit CRC |
 
 Gültig sind `0x40` bis `0x4F`: gerade Werte mit CRC, ungerade ohne CRC.
+`0x52`/`0x53`, `0x56`/`0x57`, `0x5A`/`0x5B` und `0x5E`/`0x5F` sind dieselben
+Layouts mit Mikrosekundenzeit; `0x50`, `0x54`, `0x58` und `0x5C` (µs ohne Zeit,
+samt NO_CRC-Varianten) sind ungültig. Für `kymo_encode_data` am `KymoDataPoint`
+`KYMO_FLAG_TIMESTAMP | KYMO_FLAG_TIMESTAMP_US` setzen. Die Kanal-Runtimes nutzen
+Millisekundenuhren und weisen das µs-Flag ab. Empfänger vor KymoCore 6.4 /
+KymoStudio 2.5 weisen µs-Frames als unbekannten Nachrichtentyp ab.
 Andere Versionen und Nachrichtentypen werden abgewiesen. Firmware-Features
 können die unterstützten Layouts weiter einschränken.
 
