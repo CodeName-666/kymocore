@@ -344,6 +344,7 @@ MCU-Decoder erwartet einen vollständigen Frame; er ist kein Streamassembler.
 | UART / Serial | Kopierender Write oder DMA plus Busy | Teilframes möglich |
 | USB CDC | Kopieren oder Puffer ausleihen plus Busy | USB-Pakete sind keine Framegrenzen |
 | TCP | Socket-Write, optional Service | Zusammenhängender Bytestrom |
+| UDP | Socket-`sendto` im Write-Callback | Ein ganzer Frame je Datagramm oder 0 melden |
 | MQTT | Netzwerkdienst und Publish-Callback | Ganzen Frame annehmen oder 0 melden |
 | CAN-FD | Ganzen Frame in Datenfeld einbetten | Padding vor dem Dekodieren entfernen |
 | Classic CAN | Eigenes kompaktes Mapping | Kein 9–21-Byte-Frame im 8-Byte-Paket |
@@ -371,7 +372,8 @@ Die Library liefert Telemetrie; die App übernimmt Empfang und Visualisierung.
 1. Einen App-Decoder mit v6.1/NO_CRC-Unterstützung verwenden oder Firmware-CRC
    aktivieren. Lokaler Entwicklungsstand und öffentliches Repo können abweichen.
 2. Firmware übertragen und den Eingang in der App konfigurieren: beispielsweise
-   Serial mit 115200 Baud/8N1 oder MQTT mit dem Topic des Publishers.
+   Serial mit 115200 Baud/8N1, UDP auf dem Port, an den die Firmware sendet,
+   oder MQTT mit dem Topic des Publishers.
 3. Die Kanal-ID einem Signal/Diagramm zuordnen. Y ist der Messwert; X/Z sind
    optionale Koordinaten. Ohne X wird kein gemessener X-Wert übertragen.
 4. Zunächst die bekannte Beispielwellenform prüfen, dann Sensoren anbinden.
@@ -575,8 +577,9 @@ callbacks need bounded execution for real-time use; the core cannot make a
 blocking driver asynchronous. The PubSubClient example has synchronous network
 connection attempts and is therefore not suitable for hard real-time loops.
 
-MQTT/CAN-FD adapters must accept an entire frame or return zero; individual
-messages cannot contain arbitrary frame fragments. TCP/UART/USB streams allow
+UDP/MQTT/CAN-FD adapters must accept an entire frame or return zero; individual
+messages cannot contain arbitrary frame fragments. UDP gives no delivery or
+order guarantee: a lost datagram loses its frames, never the following ones. TCP/UART/USB streams allow
 partial writes. CAN-FD padding must be removed before decoding a complete frame
 in an adapter; Classic CAN uses the separate mapping described in PROTOCOL.md.
 

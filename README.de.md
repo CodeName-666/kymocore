@@ -61,7 +61,7 @@ die Signale live als Kurve, als XY-Bahn oder in 3D.
 | **Mehr als eine Zahl** | Y, XY oder XYZ pro Messpunkt, optional mit Zeitstempel und CRC-Prüfsumme. |
 | **Kompakt auf der Leitung** | 9–21 Bytes pro Messpunkt, float32, Little Endian. Ein feststehendes, dokumentiertes [Protokoll](PROTOCOL.md). |
 | **Blockiert nie** | Einmal `Kymo_Init()`, dann zyklisch `Kymo_Main()`. Läuft ohne RTOS, ohne Heap, ohne Exceptions und ohne RTTI. |
-| **Jede Schnittstelle** | UART, USB-CDC, WLAN/TCP, MQTT, CAN …: Du lieferst einen `write`-Callback, KymoCore liefert die Bytes. |
+| **Jede Schnittstelle** | UART, USB-CDC, WLAN/TCP, UDP, MQTT, CAN …: Du lieferst einen `write`-Callback, KymoCore liefert die Bytes. |
 | **Langsame Leitungen inklusive** | Teilübertragungen, Rückstau und ausgeliehene DMA-Puffer werden sauber behandelt. |
 | **Nur was du brauchst** | X, Z, Zeitstempel, CRC, Decoder und C++-API lassen sich zur Compile-Zeit einzeln zuschalten. Standard ist minimal. |
 | **C und C++** | C++11-Kern mit C-kompatibler API, auch aus C99-Projekten nutzbar. |
@@ -81,7 +81,7 @@ die Signale live als Kurve, als XY-Bahn oder in 3D.
 
 1. **Deine Anwendung** stellt Uhr und Messfunktion bereit und legt fest, welche Kanäle wie oft gemessen werden.
 2. **KymoCore** entscheidet, welcher Kanal fällig ist, ruft deine Messfunktion auf und kodiert den Frame.
-3. **Dein Transport** (UART, USB, TCP, MQTT …) nimmt die Bytes entgegen, auch stückweise.
+3. **Dein Transport** (UART, USB, TCP, UDP, MQTT …) nimmt die Bytes entgegen, auch stückweise.
 4. **KymoStudio** setzt den Datenstrom wieder zusammen, prüft ihn und zeichnet die Kurven.
 
 Die Library enthält bewusst **keine Hardwaretreiber**. Sie bleibt dadurch auf

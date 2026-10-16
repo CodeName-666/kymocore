@@ -62,7 +62,7 @@ instrumentation; unguarded low-level API calls deliberately fail in an off build
 | **More than one number** | Y, XY or XYZ per data point, optionally with a timestamp and CRC checksum. |
 | **Compact on the wire** | 9–21 bytes per data point, float32, little endian. A fixed, documented [protocol](PROTOCOL.md). |
 | **Never blocks** | Call `Kymo_Init()` once, then `Kymo_Main()` cyclically. Runs without RTOS, heap, exceptions or RTTI. |
-| **Any interface** | UART, USB CDC, Wi-Fi/TCP, MQTT, CAN …: you provide a `write` callback, KymoCore provides the bytes. |
+| **Any interface** | UART, USB CDC, Wi-Fi/TCP, UDP, MQTT, CAN …: you provide a `write` callback, KymoCore provides the bytes. |
 | **Slow links included** | Partial transfers, backpressure and borrowed DMA buffers are handled cleanly. |
 | **Only what you need** | X, Z, timestamp, CRC, decoder and the C++ API can each be enabled at compile time. The default is minimal. |
 | **C and C++** | C++11 core with a C-compatible API, usable from C99 projects too. |
@@ -82,7 +82,7 @@ instrumentation; unguarded low-level API calls deliberately fail in an off build
 
 1. **Your application** provides the clock and the measurement function and defines which channels are sampled how often.
 2. **KymoCore** decides which channel is due, calls your measurement function and encodes the frame.
-3. **Your transport** (UART, USB, TCP, MQTT …) takes the bytes, piece by piece if necessary.
+3. **Your transport** (UART, USB, TCP, UDP, MQTT …) takes the bytes, piece by piece if necessary.
 4. **KymoStudio** reassembles the data stream, checks it and draws the curves.
 
 The library deliberately contains **no hardware drivers**. That keeps it the

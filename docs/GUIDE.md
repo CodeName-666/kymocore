@@ -343,6 +343,7 @@ optional MCU decoder expects a complete frame; it is not a stream assembler.
 | UART / Serial | Copying write or DMA plus busy | Partial frames possible |
 | USB CDC | Copy or borrow the buffer plus busy | USB packets are not frame boundaries |
 | TCP | Socket write, optional service | Continuous byte stream |
+| UDP | Socket `sendto` in the write callback | One whole frame per datagram or report 0 |
 | MQTT | Network service and publish callback | Accept the whole frame or report 0 |
 | CAN FD | Embed the whole frame in the data field | Remove padding before decoding |
 | Classic CAN | Own compact mapping | No 9–21 byte frame in an 8-byte packet |
@@ -370,7 +371,8 @@ delivers telemetry; the app handles reception and visualisation.
 1. Use an app decoder with v6.1/NO_CRC support or enable firmware CRC. Your
    local development state and the public repository may differ.
 2. Flash the firmware and configure the input in the app, for example Serial at
-   115200 baud/8N1 or MQTT with the publisher's topic.
+   115200 baud/8N1, UDP on the port the firmware sends to, or MQTT with the
+   publisher's topic.
 3. Assign the channel ID to a signal/chart. Y is the measurement; X/Z are
    optional coordinates. Without X, no measured X value is transmitted.
 4. First check the known example waveform, then connect sensors.
@@ -575,8 +577,9 @@ callbacks need bounded execution for real-time use; the core cannot make a
 blocking driver asynchronous. The PubSubClient example has synchronous network
 connection attempts and is therefore not suitable for hard real-time loops.
 
-MQTT/CAN-FD adapters must accept an entire frame or return zero; individual
-messages cannot contain arbitrary frame fragments. TCP/UART/USB streams allow
+UDP/MQTT/CAN-FD adapters must accept an entire frame or return zero; individual
+messages cannot contain arbitrary frame fragments. UDP gives no delivery or
+order guarantee: a lost datagram loses its frames, never the following ones. TCP/UART/USB streams allow
 partial writes. CAN-FD padding must be removed before decoding a complete frame
 in an adapter; Classic CAN uses the separate mapping described in PROTOCOL.md.
 
