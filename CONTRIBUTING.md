@@ -21,8 +21,9 @@ code, a pull request is only accepted with the following assurance:
 >
 > I retain my copyright in the contribution.
 
-Please confirm this in the pull request description with the sentence:
-**"I agree to the grant of rights in CONTRIBUTING.md."**
+Please confirm this by ticking the box in the pull request template:
+**"I agree to the grant of rights in CONTRIBUTING.md."** A check blocks
+pull requests without this confirmation.
 
 If the English and German versions differ, the German version prevails.
 

@@ -24,8 +24,9 @@ Zusicherung übernommen:
 >
 > Mein Urheberrecht am Beitrag behalte ich.
 
-Bitte bestätige das in der Beschreibung des Pull Requests mit dem Satz:
-**„Ich stimme der Rechteeinräumung in CONTRIBUTING.md zu.“**
+Bitte bestätige das mit der Checkbox in der Pull-Request-Vorlage:
+**„Ich stimme der Rechteeinräumung in CONTRIBUTING.md zu.“** Eine Prüfung
+blockiert Pull Requests ohne diese Bestätigung.
 
 ## Technische Hinweise
 

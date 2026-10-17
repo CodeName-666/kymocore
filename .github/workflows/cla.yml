@@ -1,0 +1,22 @@
+name: Contribution rights
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+permissions: {}
+jobs:
+  agreement:
+    # The owner and bots need no grant; everyone else must tick the box from
+    # .github/pull_request_template.md (see CONTRIBUTING.md).
+    if: github.event.pull_request.user.login != 'CodeName-666' && github.event.pull_request.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the grant of rights
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if printf '%s' "$BODY" | grep -Eiq '\[x\][^\n]*grant of rights in CONTRIBUTING\.md'; then
+            echo "Grant of rights confirmed."
+          else
+            echo "::error::Please tick 'I agree to the grant of rights in CONTRIBUTING.md' in the pull request description."
+            exit 1
+          fi
