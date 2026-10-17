@@ -36,7 +36,10 @@ from pathlib import Path
 Import("env")
 snapshot = Path(Dir(".").srcnode().abspath)
 env.Append(CPPPATH=[str(snapshot)])
-env.Append(CPPDEFINES=[("KYMO_USER_CONFIG_HEADER", r'\\"kymo_user_config.h\\"')])
+# SCons ignores include paths when deciding what to rebuild and cannot see the
+# macro-included config header; naming the snapshot forces a full rebuild on change.
+env.Append(CPPDEFINES=[("KYMO_USER_CONFIG_HEADER", r'\\"kymo_user_config.h\\"'),
+                       ("KYMO_CONFIG_SNAPSHOT", "kymo_" + snapshot.name.replace("-", "_"))])
 env.Append(CXXFLAGS=["-std=c++11"])
 ''',
         "kymo_build_sources.py": '''# Generated PlatformIO post-script; run after library include resolution.

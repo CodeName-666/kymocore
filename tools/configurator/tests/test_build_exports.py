@@ -103,6 +103,7 @@ int main(void) {
             self.assertEqual(env['CPPPATH'], [str(path.parent.resolve())])
             self.assertEqual(env['sources'][1], str(path.parent.resolve()))
             self.assertEqual(env['CPPDEFINES'][0][0], 'KYMO_USER_CONFIG_HEADER')
+            self.assertEqual(env['CPPDEFINES'][1], ('KYMO_CONFIG_SNAPSHOT', 'kymo_' + path.parent.resolve().name.replace('-', '_')))
 
     def test_cmake_export_builds_application_and_core(self):
         cmake = shutil.which('cmake') or shutil.which('cmake', path=str(Path(__import__('sys').executable).parent))
