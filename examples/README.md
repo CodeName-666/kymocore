@@ -1,6 +1,9 @@
 # Small KymoCore reference examples
 
-KymoCore includes only three small examples:
+KymoCore includes only three small examples. Each one is a single,
+self-contained file that reads top to bottom: include `KymoCore.h`, describe
+the channels, provide clock/sample/write callbacks, fill a `KymoConfig` by name,
+then call `Kymo_Init` once and `Kymo_Main` cyclically.
 
 | Example | Purpose | Build from the repository root |
 |---|---|---|
@@ -8,11 +11,10 @@ KymoCore includes only three small examples:
 | [simple analog](arduino/simple_analog_example/README.md) | Two Arduino UART waveform channels | `pio run -d examples/arduino/simple_analog_example -e uno` |
 | [multi sensor](arduino/multi_sensor_example/README.md) | Independently scheduled Y/XY/XYZ channels | `pio run -d examples/arduino/multi_sensor_example -e uno` |
 
-The sketches share [arduino_serial_config.h](common/arduino_serial_config.h).
-Keep that header with them when using the Arduino IDE. Replace synthetic samples
-with sensor acquisition. UART uses 115200 baud/8N1; configure KymoStudio accordingly.
-PlatformIO uses the local repository library and sets the required feature flags
-for both application and library. Other AVR environments are `nano` and `mega`.
+Replace synthetic samples with sensor acquisition. UART uses 115200 baud/8N1;
+configure KymoStudio accordingly. PlatformIO uses the local repository library
+and sets the required feature flags for both application and library. Other AVR
+environments are `nano` and `mega`.
 
 Larger UART, MQTT, TCP, maximum-throughput, CRC/decoder/C++ and trace/flow demos
 belong to [KymoProbe](https://github.com/CodeName-666/kymoprobe), where a central

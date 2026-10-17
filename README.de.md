@@ -105,12 +105,14 @@ reserviert; Diagnoseausgaben würden denselben Datenstrom verändern.
 
 ```cpp
 #include <Arduino.h>
-#include <kymo_runtime.h>
+#include <KymoCore.h>
 
 static KymoContext context = {};
 static KymoStatus lastStatus = KYMO_BAD_CONFIG;
-static uint32_t lastSampleMs[1] = {};
+/* period_ms, id, flags: channel 0, every 20 ms, scalar value only. */
 static const KymoChannel channels[] = {{20U, 0U, 0U}};
+static uint32_t lastSampleMs[KYMO_COUNT_OF(channels)] = {};
+static KymoConfig config = {};
 
 /*******************************************************************************
  * readClockMs
@@ -154,17 +156,18 @@ static uint8_t writeBytes(void *user, const uint8_t *bytes, uint8_t length)
     return result;
 }
 
-static const KymoConfig config = {
-    channels, lastSampleMs, readClockMs, nullptr, readSample, nullptr,
-    writeBytes, nullptr, nullptr, nullptr, 1U
-};
-
 /*******************************************************************************
  * setup
  ******************************************************************************/
 void setup()
 {
     Serial.begin(115200);
+    config.channels = channels;                     /* what */
+    config.channel_count = KYMO_COUNT_OF(channels);
+    config.last_sample_ms = lastSampleMs;
+    config.clock_ms = readClockMs;                  /* when */
+    config.sample = readSample;                     /* which values */
+    config.write = writeBytes;                      /* where to */
     lastStatus = Kymo_Init(&context, &config);
 }
 

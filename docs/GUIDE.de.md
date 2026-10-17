@@ -79,12 +79,14 @@ reserviert; Diagnoseausgaben würden denselben Datenstrom verändern.
 
 ```cpp
 #include <Arduino.h>
-#include <kymo_runtime.h>
+#include <KymoCore.h>
 
 static KymoContext context = {};
 static KymoStatus lastStatus = KYMO_BAD_CONFIG;
-static uint32_t lastSampleMs[1] = {};
+/* period_ms, id, flags: channel 0, every 20 ms, scalar value only. */
 static const KymoChannel channels[] = {{20U, 0U, 0U}};
+static uint32_t lastSampleMs[KYMO_COUNT_OF(channels)] = {};
+static KymoConfig config = {};
 
 /*******************************************************************************
  * readClockMs
@@ -128,17 +130,18 @@ static uint8_t writeBytes(void *user, const uint8_t *bytes, uint8_t length)
     return result;
 }
 
-static const KymoConfig config = {
-    channels, lastSampleMs, readClockMs, nullptr, readSample, nullptr,
-    writeBytes, nullptr, nullptr, nullptr, 1U
-};
-
 /*******************************************************************************
  * setup
  ******************************************************************************/
 void setup()
 {
     Serial.begin(115200);
+    config.channels = channels;                     /* what */
+    config.channel_count = KYMO_COUNT_OF(channels);
+    config.last_sample_ms = lastSampleMs;
+    config.clock_ms = readClockMs;                  /* when */
+    config.sample = readSample;                     /* which values */
+    config.write = writeBytes;                      /* where to */
     lastStatus = Kymo_Init(&context, &config);
 }
 
@@ -424,7 +427,8 @@ validieren. Die Paketvorbereitung und noch nötigen Schritte stehen in
 
 The following reference specifies compiler, configuration and ownership contracts.
 
-The recommended API is `kymo_runtime.h`. The entire implementation is built
+Include `KymoCore.h` to get every enabled module; the recommended API inside it
+is `kymo_runtime.h`. The entire implementation is built
 as C++11 or newer, without heap allocation, exceptions or RTTI.
 `kymo_protocol.h` exposes the standalone codec; `kymo.h` offers an optional
 C++11 push sender. The codec and Init/Main headers retain C linkage, so existing
@@ -498,21 +502,30 @@ collection/LTO; feature switches also remove optional branches within used code.
 Define this in your application's `kymo_config.c` (or `.cpp`):
 
 ```c
-#include <kymo_runtime.h>
+#include <KymoCore.h>
 
 static uint32_t clock_ms(void *user); /* your monotonic millisecond clock */
 static uint8_t read_sample(void *user, uint8_t id, KymoSample *out);
 static uint8_t write_bytes(void *user, const uint8_t *bytes, uint8_t length);
 
 static const KymoChannel channels[] = {
+    /* period_ms, id, flags */
     {20, 0, 0},
     {100, 1, 0}
 };
-static uint32_t last_sample_ms[2];
-const KymoConfig kymo_config = {
-    channels, last_sample_ms, clock_ms, 0, read_sample, 0,
-    write_bytes, 0, 0, 0, 2
-};
+static uint32_t last_sample_ms[KYMO_COUNT_OF(channels)];
+KymoConfig kymo_config; /* zero-initialized: optional fields stay NULL */
+
+void kymo_config_setup(void)
+{
+    kymo_config.channels = channels;
+    kymo_config.channel_count = KYMO_COUNT_OF(channels);
+    kymo_config.last_sample_ms = last_sample_ms;
+    kymo_config.clock_ms = clock_ms;
+    kymo_config.sample = read_sample;
+    kymo_config.write = write_bytes;
+    /* optional: clock_user, sample_user, busy, service, transport_user */
+}
 ```
 
 Implement the three callbacks in that file. `read_sample` assigns `out->value`
@@ -525,6 +538,7 @@ Initialize hardware first, then call:
 
 ```c
 static KymoContext kymo;
+kymo_config_setup();
 if (Kymo_Init(&kymo, &kymo_config) != KYMO_OK) {
     /* handle invalid configuration */
 }
@@ -611,8 +625,8 @@ The entire library, including C++ wrappers, has no vendor/SDK dependency or
 conditional target API. It knows only standard C/C++ types, configured callbacks
 and the abstract KymoStream. The millisecond callback always returns uint32_t.
 
-Hardware adapters belong to the application. The small Arduino examples use
-`examples/common/arduino_serial_config.h` for their callbacks. Larger transport,
+Hardware adapters belong to the application. Each small Arduino example
+keeps its callbacks in its own self-contained sketch. Larger transport,
 performance and trace applications and optional C++ hardware adapters live in
 KymoProbe; they are not part of this library package.
 

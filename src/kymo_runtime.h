@@ -255,13 +255,36 @@ typedef void (*KymoServiceFn)(void *user);
 /** @name Configuration and runtime storage
  * @{ */
 /**
+ * @brief Number of elements in a statically sized array as a channel count.
+ *
+ * @details Compile-time only: the operand appears solely inside sizeof and is
+ * never evaluated. Pass a true array, not a pointer. The result has type
+ * uint16_t to match KymoConfig::channel_count; Init still validates 1..256.
+ * @param array_ Array object such as the channel table or last_sample_ms storage.
+ * @par Usage
+ * config.channel_count = KYMO_COUNT_OF(channels);
+ */
+#define KYMO_COUNT_OF(array_) ((uint16_t)(sizeof(array_) / sizeof((array_)[0])))
+
+/**
  * @brief Persistent wiring of scheduling, callbacks and caller-owned state.
  *
  * @details Input to Init. This object and its channel table remain immutable and alive while
  * the context uses them. User contexts may be mutable. Each runtime instance needs
  * its own last_sample_ms array; no hardware initialization is performed by Init.
+ * Only channels, last_sample_ms, clock_ms, sample, write and channel_count are required;
+ * every other field may stay zero/NULL. Assigning fields by name keeps setup readable.
  * @par Usage
- * Define a static const configuration in kymo_config.c/.cpp and pass its address to Init.
+ * @code{.cpp}
+ * static KymoConfig config = {};          // C: static KymoConfig config;
+ * config.channels       = channels;       // what to send and how often
+ * config.channel_count  = KYMO_COUNT_OF(channels);
+ * config.last_sample_ms = lastSampleMs;   // one uint32_t per channel
+ * config.clock_ms       = readClockMs;    // when
+ * config.sample         = readSample;     // which values
+ * config.write          = writeBytes;     // where to
+ * Kymo_Init(&context, &config);
+ * @endcode
  */
 typedef struct {
     /**

@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased (structure and onboarding)
+
+- Add `KymoCore.h`, a single entry header that includes every enabled module
+  (runtime, protocol, instrumentation, and optionally the C++ sender and trace
+  recorder/mux). The Arduino `includes=` entry now points to it. All existing
+  headers remain supported.
+- Add `KYMO_COUNT_OF(array)` for channel counts and `last_sample_ms` sizing.
+- Group the switches in `kymo_build_config.h` (master, telemetry API, telemetry
+  payload, tracing) and document them in one overview table.
+- Arduino examples are now self-contained single sketches with named-field
+  configuration; `examples/common/arduino_serial_config.h` is removed.
+- README, guide and the basic example use `KymoCore.h` and named `KymoConfig`
+  fields instead of positional initializers.
+- Library code, API, resource layout and wire behavior are unchanged.
+
 ## 6.4.0 - 2026-10-15
 
 - Add `KYMO_FLAG_TIMESTAMP_US` (descriptor bit 4, data message type 01): the timestamp

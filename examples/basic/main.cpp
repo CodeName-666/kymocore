@@ -6,18 +6,19 @@
  * @details Produces ten scalar frames without a board, SDK, heap or decoder.
  * The application owns every buffer. Replace the callbacks for actual hardware.
  */
-#include <kymo_features.h>
+#include <KymoCore.h>
 
 #if KYMO_EFFECTIVE_RUNTIME
-
-#include <kymo_runtime.h>
 
 static uint32_t sTickMs = 0U;
 static uint8_t sCapturedFrame[KYMO_FRAME_MAX_SIZE] = {};
 static uint8_t sCapturedLength = 0U;
-static uint32_t sLastSampleMs[1] = {};
 static KymoContext sContext = {};
+static KymoConfig sConfig = {};
+
+/* period_ms, id, flags: channel 7, every 20 ms, scalar value only. */
 static const KymoChannel sChannels[] = {{20U, 7U, 0U}};
+static uint32_t sLastSampleMs[KYMO_COUNT_OF(sChannels)] = {};
 
 /** @brief Read the simulated monotonic clock.
  * @param[in] pUser Unused; pass nullptr.
@@ -77,11 +78,6 @@ static uint8_t writeFrame(void *pUser, const uint8_t *pBytes, uint8_t length)
     return result;
 }
 
-static const KymoConfig sConfig = {
-    sChannels, sLastSampleMs, readClockMs, nullptr, readSample, nullptr,
-    writeFrame, nullptr, nullptr, nullptr, 1U
-};
-
 /** @brief Run ten bounded sampling steps and check a captured scalar frame.
  * @return Zero on success, one on initialization, scheduling or framing failure.
  */
@@ -91,7 +87,14 @@ static const KymoConfig sConfig = {
 int main()
 {
     int result = 0;
-    KymoStatus status = Kymo_Init(&sContext, &sConfig);
+    KymoStatus status = KYMO_BAD_CONFIG;
+    sConfig.channels = sChannels;
+    sConfig.channel_count = KYMO_COUNT_OF(sChannels);
+    sConfig.last_sample_ms = sLastSampleMs;
+    sConfig.clock_ms = readClockMs;
+    sConfig.sample = readSample;
+    sConfig.write = writeFrame;
+    status = Kymo_Init(&sContext, &sConfig);
     if (status != KYMO_OK) {
         result = 1;
     }

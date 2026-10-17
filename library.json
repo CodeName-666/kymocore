@@ -29,6 +29,7 @@
   "frameworks": "*",
   "platforms": "*",
   "headers": [
+    "KymoCore.h",
     "kymo_instrumentation.h",
     "kymo_trace.h",
     "kymo_trace_protocol.h",
