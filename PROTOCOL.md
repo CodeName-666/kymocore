@@ -5,7 +5,7 @@ senders and KymoStudio. The primary format is compact binary. KymoStudio still
 accepts the v5 JSON format so existing firmware does not need to be upgraded
 immediately.
 
-Receiver project: [KymoStudio](https://github.com/CodeName-666/kymostudio).
+Receiver project: [KymoStudio](https://kymotrace.de/#download).
 See the [illustrated integration guide](README.md) for setup and transport ownership.
 
 ![Binary frame and descriptor layout](docs/images/protocol.png)

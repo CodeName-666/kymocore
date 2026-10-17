@@ -24,7 +24,7 @@ channel ID.
 | Scheduler | Due times, round robin and backpressure | `Kymo_Init`, `Kymo_Main` |
 | Codec | Check values and build a little-endian frame | `kymo_encode_data` |
 | Transport adapter | Copy bytes or borrow them in a controlled way | `write`, optional `busy`/`service` |
-| KymoStudio | Decode, display and analyse signals | [Desktop project](https://github.com/CodeName-666/kymostudio) |
+| KymoStudio | Decode, display and analyse signals | [Desktop project](https://kymotrace.de/#download) |
 
 The optional C++ class `Kymo` is an alternative push sender: the application
 decides when to send. Both APIs use the same wire format. There is no
@@ -364,12 +364,12 @@ transport together.
 ## Connecting KymoStudio
 
 The matching desktop application is
-**[KymoStudio on GitHub](https://github.com/CodeName-666/kymostudio)**. It hosts
-the source code and information on the current project state. The library
+**[KymoStudio](https://kymotrace.de/#download)**; the Windows installer is
+available on the download page. The library
 delivers telemetry; the app handles reception and visualisation.
 
-1. Use an app decoder with v6.1/NO_CRC support or enable firmware CRC. Your
-   local development state and the public repository may differ.
+1. Use an app decoder with v6.1/NO_CRC support or enable firmware CRC. Older
+   app versions may lack this support.
 2. Flash the firmware and configure the input in the app, for example Serial at
    115200 baud/8N1, UDP on the port the firmware sends to, or MQTT with the
    publisher's topic.

@@ -23,7 +23,7 @@ empfangene Fragmente zusammen und ordnet Messwerte anhand ihrer Kanal-ID zu.
 | Scheduler | Fälligkeit, Round-Robin und Rückstau | `Kymo_Init`, `Kymo_Main` |
 | Codec | Werte prüfen und Little-Endian-Frame erzeugen | `kymo_encode_data` |
 | Transportadapter | Bytes kopieren oder kontrolliert ausleihen | `write`, optional `busy`/`service` |
-| KymoStudio | Dekodieren, Signale darstellen und auswerten | [Desktop-Projekt](https://github.com/CodeName-666/kymostudio) |
+| KymoStudio | Dekodieren, Signale darstellen und auswerten | [Desktop-Projekt](https://kymotrace.de/#download) |
 
 Die optionale C++-Klasse `Kymo` ist ein alternativer Push-Sender: Die
 Anwendung entscheidet selbst über den Sendezeitpunkt. Beide APIs verwenden
@@ -365,12 +365,12 @@ Main-Aufruffrequenz und Transport gemeinsam dimensionieren.
 ## KymoStudio verbinden
 
 Die zugehörige Desktop-Anwendung ist
-**[KymoStudio auf GitHub](https://github.com/CodeName-666/kymostudio)**.
-Dort befinden sich Quellcode und Informationen zum jeweiligen Projektstand.
+**[KymoStudio](https://kymotrace.de/#download)**; der Windows-Installer
+steht auf der Download-Seite bereit.
 Die Library liefert Telemetrie; die App übernimmt Empfang und Visualisierung.
 
 1. Einen App-Decoder mit v6.1/NO_CRC-Unterstützung verwenden oder Firmware-CRC
-   aktivieren. Lokaler Entwicklungsstand und öffentliches Repo können abweichen.
+   aktivieren. Ältere App-Versionen unterstützen das eventuell nicht.
 2. Firmware übertragen und den Eingang in der App konfigurieren: beispielsweise
    Serial mit 115200 Baud/8N1, UDP auf dem Port, an den die Firmware sendet,
    oder MQTT mit dem Topic des Publishers.

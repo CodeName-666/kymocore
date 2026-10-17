@@ -45,7 +45,7 @@ PC mühsam zerlegt werden.
 **KymoCore** löst genau das. Die Library liest deine Messwerte im
 eingestellten Takt, verpackt sie in kompakte Binärframes von **9 bis 21 Bytes**
 und gibt sie an eine beliebige Schnittstelle weiter, ohne den Hauptzyklus
-aufzuhalten. Auf dem PC zeigt [KymoStudio](https://github.com/CodeName-666/kymostudio)
+aufzuhalten. Auf dem PC zeigt [KymoStudio](https://kymotrace.de/#download)
 die Signale live als Kurve, als XY-Bahn oder in 3D.
 
 <p align="center">
@@ -214,7 +214,7 @@ Die vollständige Spezifikation mit Beispielframes steht in [PROTOCOL.md](PROTOC
 |---|---|
 | **[KymoCore](https://github.com/CodeName-666/kymocore)** | diese Library: Messwerte erfassen und senden |
 | [KymoProbe](https://github.com/CodeName-666/kymoprobe) | Firmware und Hardwarebeispiele für ESP32, Arduino und STM32 |
-| [KymoStudio](https://github.com/CodeName-666/kymostudio) | Desktop-App: empfangen, darstellen, analysieren, exportieren |
+| [KymoStudio](https://kymotrace.de/#download) | Desktop-App: empfangen, darstellen, analysieren, exportieren |
 
 ## Dokumentation
 

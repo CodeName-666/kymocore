@@ -106,4 +106,4 @@ Broker-Verbindungen sind keine Folgen eines erfolgreichen Compile-Tests.
 - [Kurzbeschreibung bis 255 Zeichen](https://docs.platformio.org/en/latest/manifests/library-json/fields/description.html)
 - [Paket packen](https://docs.platformio.org/en/latest/core/userguide/pkg/cmd_pack.html)
 - [Veröffentlichen und unveränderliche Versionen](https://docs.platformio.org/en/latest/core/userguide/pkg/cmd_publish.html)
-- [KymoStudio](https://github.com/CodeName-666/kymostudio)
+- [KymoStudio](https://kymotrace.de/#download)
