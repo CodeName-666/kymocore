@@ -22,8 +22,10 @@ from .session import ProjectSession
 class FieldEditor(QWidget):
     """One labelled, explained input bound to a catalog field."""
 
-    def __init__(self, field: catalog.Field, session: ProjectSession, guided: bool = False):
-        super().__init__()
+    def __init__(self, field: catalog.Field, session: ProjectSession, guided: bool = False,
+                 parent: QWidget | None = None):
+        # Created inside its parent: a parentless widget shown by refresh() would flash as a window.
+        super().__init__(parent)
         self.field = field
         self.session = session
         self.guided = guided

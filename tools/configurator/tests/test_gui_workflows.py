@@ -169,6 +169,32 @@ class GuiWorkflowTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             window.session.duplicate_profile("bench")
 
+    def test_startup_shows_no_stray_windows(self):
+        from PySide6.QtCore import QEvent, QObject
+        from PySide6.QtWidgets import QWidget
+        from kymo_configurator.presets import apply_preset
+        from kymo_configurator.gui.widgets import RegistryEditor
+
+        shown = []
+
+        class Spy(QObject):
+            def eventFilter(self, obj, event):
+                if event.type() == QEvent.Type.Show and isinstance(obj, QWidget) and obj.isWindow():
+                    shown.append(type(obj).__name__)
+                return False
+
+        spy = Spy()
+        self.app.installEventFilter(spy)
+        self.addCleanup(self.app.removeEventFilter, spy)
+        window = self.window(GUIDED)
+        apply_preset(window.session.doc["profiles"]["development"], "trace")
+        window.session.touch()
+        window._build_ui(GUIDED)
+        self.assertEqual(shown, [])
+        page = window.professional.pages["trace"]
+        tables = [w for w in page.widgets if isinstance(w, RegistryEditor)]
+        self.assertTrue(tables and all(t.isVisibleTo(page) for t in tables))
+
     def test_rebuild_in_german_keeps_the_project(self):
         from kymo_configurator import i18n
         self.addCleanup(i18n.set_language, "en")

@@ -57,7 +57,7 @@ class SectionPage(QScrollArea):
                 note.setWordWrap(True)
                 group_layout.addWidget(note)
             for field in fields:
-                editor = FieldEditor(field, session, guided)
+                editor = FieldEditor(field, session, guided, frame)
                 self.editors[field.key] = editor
                 group_layout.addWidget(editor)
             layout.addWidget(frame)

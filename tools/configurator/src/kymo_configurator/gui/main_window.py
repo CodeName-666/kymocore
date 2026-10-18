@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QLocale, QSettings, Qt
-from PySide6.QtGui import QAction, QKeySequence
+from PySide6.QtCore import QLocale, QSettings, Qt, QTimer
+from PySide6.QtGui import QAction, QActionGroup, QKeySequence
 from PySide6.QtWidgets import (QComboBox, QFileDialog, QFrame, QHBoxLayout, QInputDialog, QLabel,
-                               QMainWindow, QMessageBox, QPushButton, QStackedWidget, QToolBar,
-                               QVBoxLayout, QWidget)
+                               QMainWindow, QMenu, QMessageBox, QPushButton, QStackedWidget,
+                               QToolBar, QToolButton, QVBoxLayout, QWidget)
 
 from ..i18n import LANGUAGES, language, set_language, tr
 from ..model import CORE_CONFIG_API_VERSION
@@ -101,10 +101,11 @@ class MainWindow(QMainWindow):
         self.session.replaced.connect(self._load_profiles)
 
     def _build_ui(self, mode: str | None) -> None:
-        """(Re)create toolbar and pages in the current language; the session is kept."""
+        """(Re)create menus, toolbar and pages in the current language; the session is kept."""
         if self.bar is not None:
             self.removeToolBar(self.bar)
             self.bar.deleteLater()
+        self._build_menus()
         self._build_toolbar()
         central = QWidget()
         outer = QVBoxLayout(central)
@@ -127,20 +128,48 @@ class MainWindow(QMainWindow):
         self._update_chrome()
 
     # --- chrome -------------------------------------------------------------
+    def _build_menus(self) -> None:
+        """File, View and Language menus; the language menu is labelled in both languages."""
+        menus = self.menuBar()
+        for old in menus.findChildren(QMenu, options=Qt.FindChildOption.FindDirectChildrenOnly):
+            old.deleteLater()
+        menus.clear()
+        file_menu = menus.addMenu(tr("&File"))
+        for text, shortcut, slot in ((tr("&New"), QKeySequence.StandardKey.New, self.new_project),
+                                     (tr("&Open…"), QKeySequence.StandardKey.Open, self.open_project),
+                                     (tr("&Save"), QKeySequence.StandardKey.Save, self.save),
+                                     (tr("Save &as…"), QKeySequence.StandardKey.SaveAs, self.save_as)):
+            action = file_menu.addAction(text)
+            action.setShortcut(shortcut)
+            action.triggered.connect(slot)
+        file_menu.addSeparator()
+        quit_action = file_menu.addAction(tr("&Quit"))
+        quit_action.setShortcut(QKeySequence.StandardKey.Quit)
+        quit_action.triggered.connect(self.close)
+        view_menu = menus.addMenu(tr("&View"))
+        modes = QActionGroup(view_menu)
+        self.guided_action = view_menu.addAction(tr("Guided setup"))
+        self.professional_action = view_menu.addAction(tr("Professional mode"))
+        for action, target in ((self.guided_action, GUIDED), (self.professional_action, PROFESSIONAL)):
+            action.setCheckable(True)
+            modes.addAction(action)
+            action.triggered.connect(lambda _=False, m=target: self.set_mode(m))
+        language_menu = menus.addMenu("Language / Sprache")
+        languages = QActionGroup(language_menu)
+        for code, name in LANGUAGES.items():
+            action = language_menu.addAction(name)
+            action.setCheckable(True)
+            action.setChecked(code == language())
+            languages.addAction(action)
+            # Deferred: rebuilding the menus inside their own signal would delete the sender.
+            action.triggered.connect(lambda _=False, c=code: QTimer.singleShot(0, lambda: self.change_language(c)))
+
     def _build_toolbar(self) -> None:
         bar = QToolBar(tr("Project"))
         bar.setMovable(False)
+        bar.setObjectName("mainToolbar")
         self.addToolBar(bar)
         self.bar = bar
-        for text, shortcut, slot in ((tr("New"), QKeySequence.StandardKey.New, self.new_project),
-                                     (tr("Open…"), QKeySequence.StandardKey.Open, self.open_project),
-                                     (tr("Save"), QKeySequence.StandardKey.Save, self.save),
-                                     (tr("Save as…"), QKeySequence.StandardKey.SaveAs, self.save_as)):
-            action = QAction(text, bar)
-            action.setShortcut(shortcut)
-            action.triggered.connect(slot)
-            bar.addAction(action)
-        bar.addSeparator()
         profile_tip = tr("A profile is a named set of settings for one firmware build, e.g. 'development' "
                          "with all measurements and 'production' with KymoCore switched off. "
                          "All steps edit the profile selected here.")
@@ -156,27 +185,28 @@ class MainWindow(QMainWindow):
         duplicate = QAction(tr("New profile…"), bar)
         duplicate.setToolTip(tr("Adds a profile that starts as a copy of the selected one."))
         duplicate.triggered.connect(self.new_profile)
-        bar.addAction(duplicate)
+        duplicate_button = QToolButton()
+        duplicate_button.setDefaultAction(duplicate)
+        duplicate_button.setObjectName("toolbarButton")
+        bar.addWidget(duplicate_button)
         spacer = QWidget()
         spacer.setSizePolicy(spacer.sizePolicy().horizontalPolicy().Expanding,
                              spacer.sizePolicy().verticalPolicy().Preferred)
         bar.addWidget(spacer)
-        self.language = QComboBox()
-        self.language.setToolTip(tr("Language of the user interface"))
-        for code, name in LANGUAGES.items():
-            self.language.addItem(name, code)
-        self.language.setCurrentIndex(self.language.findData(language()))
-        self.language.currentIndexChanged.connect(
-            lambda _: self.change_language(self.language.currentData()))
-        bar.addWidget(self.language)
-        bar.addSeparator()
-        bar.addWidget(QLabel(tr("Mode") + " "))
-        self.guided_action = QAction(tr("Guided"), bar, checkable=True)
-        self.professional_action = QAction(tr("Professional"), bar, checkable=True)
-        self.guided_action.triggered.connect(lambda: self.set_mode(GUIDED))
-        self.professional_action.triggered.connect(lambda: self.set_mode(PROFESSIONAL))
-        bar.addAction(self.guided_action)
-        bar.addAction(self.professional_action)
+        # Segmented mode switch; the buttons mirror the View menu actions.
+        switch = QWidget()
+        switch_layout = QHBoxLayout(switch)
+        switch_layout.setContentsMargins(0, 0, 0, 0)
+        switch_layout.setSpacing(0)
+        for action, tip, name in (
+                (self.guided_action, tr("Step by step, only what matters for your goal."), "segmentLeft"),
+                (self.professional_action, tr("All settings at once."), "segmentRight")):
+            button = QToolButton()
+            button.setDefaultAction(action)
+            button.setToolTip(tip)
+            button.setObjectName(name)
+            switch_layout.addWidget(button)
+        bar.addWidget(switch)
 
     def change_language(self, code: str) -> None:
         if code == language():

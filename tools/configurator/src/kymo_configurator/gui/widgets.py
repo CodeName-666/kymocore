@@ -254,7 +254,8 @@ class RegistryEditor(QWidget):
         finally:
             self._updating = False
         visible = bool(self.session.view().get((catalog.PROFILE, "trace", "enabled"), False))
-        self.setVisible(visible)
+        if not visible or self.parentWidget() is not None:
+            self.setVisible(visible)  # unplaced: showing now would flash a separate window
 
     def _item_changed(self, item: QTableWidgetItem) -> None:
         if self._updating or item.row() >= len(self.rows):

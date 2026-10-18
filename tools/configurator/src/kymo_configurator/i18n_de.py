@@ -10,10 +10,15 @@ DE: dict[str, str] = {
     # --- window, toolbar, files -------------------------------------------------
     "KymoCore Configurator": "KymoCore-Konfigurator",
     "Project": "Projekt",
-    "New": "Neu",
-    "Open…": "Öffnen…",
-    "Save": "Speichern",
-    "Save as…": "Speichern unter…",
+    "&File": "&Datei",
+    "&New": "&Neu",
+    "&Open…": "Ö&ffnen…",
+    "&Save": "&Speichern",
+    "Save &as…": "Speichern &unter…",
+    "&Quit": "&Beenden",
+    "&View": "&Ansicht",
+    "Step by step, only what matters for your goal.": "Schritt für Schritt, nur was für dein Ziel wichtig ist.",
+    "All settings at once.": "Alle Einstellungen auf einmal.",
     "Build profile:": "Build-Profil:",
     "A profile is a named set of settings for one firmware build, e.g. 'development' with all "
     "measurements and 'production' with KymoCore switched off. All steps edit the profile selected here.":
@@ -29,8 +34,6 @@ DE: dict[str, str] = {
         "Das neue Profil beginnt als Kopie von '{name}'.\nDanach kannst du es ändern, ohne das Original "
         "zu beeinflussen.\n\nName (z. B. production):",
     "A profile named '{name}' already exists.": "Ein Profil mit dem Namen '{name}' gibt es schon.",
-    "Language of the user interface": "Sprache der Oberfläche",
-    "Mode": "Modus",
     "Guided": "Geführt",
     "Professional": "Profi",
     "unsaved project": "ungespeichertes Projekt",

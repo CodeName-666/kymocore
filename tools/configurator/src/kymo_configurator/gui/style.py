@@ -29,4 +29,12 @@ QMainWindow, #sectionBody, QStackedWidget { background: #f7f8fa; }
 #startTitle { font-size: 24px; font-weight: 600; color: #1f2430; }
 #notice { background: #fff5d6; border: 1px solid #ecd58b; border-radius: 6px; padding: 8px; color: #5a4a12; }
 #preview { font-family: monospace; font-size: 12px; }
+#mainToolbar { background: white; border-bottom: 1px solid #d9dde4; padding: 4px 10px; spacing: 6px; }
+#toolbarButton { border: 1px solid #c3c9d4; border-radius: 6px; padding: 3px 10px; background: white; }
+#toolbarButton:hover { background: #eef0f4; }
+#segmentLeft, #segmentRight { background: white; color: #1f2430; border: 1px solid #c3c9d4; padding: 4px 16px; }
+#segmentLeft { border-top-left-radius: 6px; border-bottom-left-radius: 6px; }
+#segmentRight { border-left: none; border-top-right-radius: 6px; border-bottom-right-radius: 6px; }
+#segmentLeft:checked, #segmentRight:checked { background: #2f5bd3; color: white; border-color: #2f5bd3; }
+#segmentLeft:hover:!checked, #segmentRight:hover:!checked { background: #eef0f4; }
 """
