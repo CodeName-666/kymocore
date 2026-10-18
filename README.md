@@ -48,8 +48,9 @@ as curves, XY traces or in 3D.
 
 ### Project configuration and production builds
 
-The optional [Kymo configurator](tools/configurator/README.md) provides a
-Qt Widgets editor and a Qt-free CLI for versioned project profiles. Generated
+The optional [Kymo configurator](tools/configurator/README.md) offers a
+guided step-by-step setup and a professional mode with every setting, plus a Qt-free
+CLI for versioned project profiles. Generated
 configuration snapshots can be compiled without running Python or installing Qt.
 Compiler definitions override the project header, which overrides library defaults.
 Use `KYMO_ENABLED=0` for production and guard application-owned telemetry resources

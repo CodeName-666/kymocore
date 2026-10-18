@@ -92,7 +92,17 @@ und Doxygen über das KymoProbe-`Doxyfile`. **KymoProbe muss für 7.0 angepasst 
 (neue Include-Pfade und Namen, `Doxyfile`-Inputs auf `src/**`). Solange KymoProbe
 6.4.0 pinnt, ist es nicht betroffen.
 
-## 4. Nächster Schritt
+## 4. Konfigurator 0.2
 
-Konfigurator für 7.0 erweitern: Profi-Modus und geführter Modus, verständlichere,
-erweiterbare UI (Vorbereitung für künftige Features wie den Rückkanal).
+| Thema | Umsetzung |
+|---|---|
+| 7.0-Anpassung | Projektschema 2 (Migration von Schema 1, auch automatisch beim Öffnen in der GUI), Konfigurations-API 2, Generator für die 7.0-API, `KYMO_MAX_CHANNELS` aus der Kanaltabelle, `core_id`/`current_context` optional |
+| Ziele statt Schalter | Presets „Live-Werte“, „XY/XYZ mit Zeit“, „Execution-Tracing“ entsprechen `KYMO_PROFILE_*`; manuelle Änderung → „custom“ |
+| Geführter Modus | Startfrage nach dem Ziel, danach nur relevante Schritte (Tracing nur bei Trace-Ziel), fortgeschrittene Felder ausgeblendet, „Weiter“ gesperrt bei Fehlern des Schritts, Abschluss mit Prüfen & Generieren |
+| Profi-Modus | Navigation mit Live-Zusammenfassung und Status (✓/⚠/✖) je Thema, Fehler direkt am Feld, Prüfseite mit effektiven Makros, Dateivorschau und Sprung von Problemen zum Feld |
+| Verständlichkeit | Jede Einstellung mit Klartext-Erklärung, betroffenem Makro/Signatur und Begründung, warum sie gerade gesperrt ist; Kanaltabelle mit Rate, Bytes/Frame und Leitungsauslastung |
+| Erweiterbarkeit | Beide Modi werden aus einem deklarativen Katalog (`catalog.py`) erzeugt; neue Features (z. B. Rückkanal) über `register_section`, `register_widget`, `register_validator`, `register_renderer` – siehe `tools/configurator/EXTENDING.md` |
+| Tests | 39 Tests (vorher 22), u. a. alle Katalogfelder gegen den Validator, Presets, Migration, Erweiterungs-Rundlauf, GUI-Workflows beider Modi offscreen |
+
+Die UI-Texte sind derzeit Englisch und liegen gesammelt im Katalog, sodass eine
+deutsche Übersetzung später an einer Stelle ergänzt werden kann.

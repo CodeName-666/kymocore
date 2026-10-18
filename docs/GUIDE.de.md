@@ -455,7 +455,7 @@ KymoCore/
     common/                Bit-, Byte- und CRC-Helfer
   examples/                Portable und Arduino-Referenzbeispiele
   test/                    Native Tests und Strukturprüfung
-  tools/configurator/      Projekt-Konfigurator
+  tools/configurator/      Konfigurator: geführter und Profi-Modus
   docs/                    Anleitung (Englisch/Deutsch) und Bilder
 ```
 

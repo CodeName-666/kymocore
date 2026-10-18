@@ -27,8 +27,9 @@
 
 ## Worum geht es?
 
-Der optionale [Kymo-Konfigurator](tools/configurator/README.de.md) bearbeitet
-versionierte Projektprofile über Qt Widgets oder eine Qt-freie CLI. Erzeugte
+Der optionale [Kymo-Konfigurator](tools/configurator/README.de.md) bietet eine
+geführte Schritt-für-Schritt-Einrichtung und einen Profi-Modus mit allen Einstellungen,
+dazu eine Qt-freie CLI für versionierte Projektprofile. Erzeugte
 Konfigurationsstände lassen sich ohne Python-Generator und ohne Qt kompilieren.
 Compilerdefinitionen haben Vorrang vor dem Projektheader und den Bibliotheksvorgaben.
 `KYMO_ENABLED=0` schaltet die Instrumentierung aus; anwendungseigene Telemetrieressourcen

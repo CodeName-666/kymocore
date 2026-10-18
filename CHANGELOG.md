@@ -35,7 +35,11 @@ and the feature set are unchanged; the API and file layout change. See
 - Self-contained Arduino examples without a shared header; named-field setup.
 - New `test/native_test.py` (runtime, sender, common utilities, profiles,
   structure check); CI runs it.
-- Configurator generates 7.0 code and sizes `KYMO_MAX_CHANNELS`.
+- Configurator 0.2: project schema 2 with migration from schema 1, KymoCore 7.0
+  code generation (sizes `KYMO_MAX_CHANNELS`, optional trace callbacks), use-case
+  presets matching `KYMO_PROFILE`, a guided step-by-step mode and a professional
+  mode built from one declarative setting catalog with explanations and affected
+  macros, and extension hooks for future features (see `tools/configurator/EXTENDING.md`).
 
 ## 6.4.0 - 2026-10-15
 

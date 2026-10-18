@@ -5,12 +5,32 @@ import re
 from dataclasses import asdict, dataclass
 from pathlib import PurePath
 from typing import Any
-from .model import FEATURES
+from .model import CORE_CONFIG_API_VERSION, FEATURES, SCHEMA_VERSION
+from .presets import CUSTOM, PRESETS
 from .resolution import resolve_profile
 
 IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 PORTS = {"generic", "esp32_freertos", "stm32_baremetal"}
 TOP_FIELDS={"schema_version","project_name","core_config_api_version","profiles","active_profile","channels","bindings","port","build","resources","symbols","contexts"}
+
+EXTENSION_FIELDS: set[str] = set()
+"""Top-level project fields owned by registered extensions."""
+VALIDATORS: list = []
+"""Extension validators: callable(project, profile_name) -> list[Diagnostic]."""
+
+
+def register_validator(validator, top_level_fields: tuple[str, ...] = ()) -> None:
+    """Register an extension validator and the top-level fields it owns."""
+    if validator not in VALIDATORS:
+        VALIDATORS.append(validator)
+    EXTENSION_FIELDS.update(top_level_fields)
+
+
+def unregister_validator(validator, top_level_fields: tuple[str, ...] = ()) -> None:
+    if validator in VALIDATORS:
+        VALIDATORS.remove(validator)
+    EXTENSION_FIELDS.difference_update(top_level_fields)
+
 
 @dataclass(frozen=True)
 class Diagnostic:
@@ -26,11 +46,12 @@ def validate(project: dict[str, Any], profile_name: str | None = None) -> list[D
     def add(code, path, message, suggestion="", severity="error"):
         out.append(Diagnostic(code,severity,path,message,suggestion))
     if not isinstance(project,dict): return [Diagnostic("project.type","error","$","Project root must be an object")]
-    for key in sorted(set(project)-TOP_FIELDS): add("schema.unknown_field",key,f"Unknown top-level field {key!r} in schema version 1")
+    for key in sorted(set(project)-TOP_FIELDS-EXTENSION_FIELDS): add("schema.unknown_field",key,f"Unknown top-level field {key!r} in schema version {SCHEMA_VERSION}")
     if type(project.get("schema_version")) is not int: add("schema.type","schema_version","schema_version must be an integer")
-    elif project["schema_version"] != 1: add("schema.version","schema_version",f"Unsupported schema version {project['schema_version']}; supported version is 1")
+    elif project["schema_version"] == 1: add("schema.version","schema_version","Schema version 1 targets KymoCore 6.x",f"Run: kymo-configurator migrate <project> --to-schema {SCHEMA_VERSION}")
+    elif project["schema_version"] != SCHEMA_VERSION: add("schema.version","schema_version",f"Unsupported schema version {project['schema_version']}; supported version is {SCHEMA_VERSION}")
     if not isinstance(project.get("project_name"),str) or not project.get("project_name","").strip(): add("project.name","project_name","Project name must not be empty")
-    if type(project.get("core_config_api_version")) is not int or project.get("core_config_api_version") != 1: add("core.api","core_config_api_version","This project targets configuration API version 1")
+    if type(project.get("core_config_api_version")) is not int or project.get("core_config_api_version") != CORE_CONFIG_API_VERSION: add("core.api","core_config_api_version",f"KymoCore 7.0 requires configuration API version {CORE_CONFIG_API_VERSION}")
     profiles=project.get("profiles")
     if not isinstance(profiles,dict) or not profiles:
         add("profiles.empty","profiles","At least one named profile is required"); profiles={}
@@ -57,7 +78,8 @@ def validate(project: dict[str, Any], profile_name: str | None = None) -> list[D
     for pname,p in profiles.items():
         base=f"profiles.{pname}"
         if not isinstance(p,dict): add("profile.type",base,"Profile must be an object"); continue
-        for key in sorted(set(p)-{"enabled","features","trace"}): add("schema.unknown_field",f"{base}.{key}",f"Unknown profile field {key!r}")
+        for key in sorted(set(p)-{"enabled","preset","features","trace"}): add("schema.unknown_field",f"{base}.{key}",f"Unknown profile field {key!r}")
+        if "preset" in p and p["preset"] not in set(PRESETS)|{CUSTOM}: add("profile.preset",base+".preset","Preset must be one of: "+", ".join(sorted(set(PRESETS)|{CUSTOM})))
         if type(p.get("enabled")) is not bool: add("boolean.type",base+".enabled","enabled must be boolean")
         feat=p.get("features")
         if not isinstance(feat,dict): add("features.type",base+".features","features must be an object"); feat={}
@@ -112,8 +134,6 @@ def validate(project: dict[str, Any], profile_name: str | None = None) -> list[D
         if trace.get("enabled") and p.get("enabled"):
             callbacks = {
                 "clock": trace_bindings.get("clock") or clock.get("callback"),
-                "core_id": trace_bindings.get("core_id"),
-                "current_context": trace_bindings.get("current_context"),
                 "session_id": trace_bindings.get("session_id") or session.get("callback"),
                 "trace_write": trace_bindings.get("trace_write") or trace_bindings.get("mux_write"),
             }
@@ -201,4 +221,6 @@ def validate(project: dict[str, Any], profile_name: str | None = None) -> list[D
             for key in allowed:
                 item=value.get(key)
                 if item is not None and (type(item) is not int or item<=0): add("resource.value",f"resources.{key}","Resource budgets must be positive integers or null")
+    for validator in VALIDATORS:
+        out.extend(validator(project, selected))
     return out

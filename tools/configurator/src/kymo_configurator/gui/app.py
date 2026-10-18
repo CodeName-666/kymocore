@@ -5,8 +5,9 @@ from pathlib import Path
 from PySide6.QtWidgets import QApplication
 from .main_window import MainWindow
 
-def run(project_path=None):
-    app=QApplication.instance() or QApplication(sys.argv)
-    window=MainWindow(Path(project_path) if project_path else None)
+
+def run(project_path=None, mode=None):
+    app = QApplication.instance() or QApplication(sys.argv)
+    window = MainWindow(Path(project_path) if project_path else None, mode)
     window.show()
     return app.exec()

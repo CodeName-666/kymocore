@@ -187,8 +187,8 @@ def _render_trace_wiring(trace: dict[str, Any], profile_enabled: bool,
 #include <stdint.h>
 
 extern "C" uint64_t %s(void *);
-extern "C" uint8_t %s(void *);
-extern "C" uint32_t %s(void *);
+%s
+%s
 extern "C" uint64_t %s(void);
 extern "C" size_t %s(void *, const uint8_t *, size_t);
 %s
@@ -289,7 +289,10 @@ void kymo_generated_trace_service(void)
 %s
 #endif
 """ % (
-        clock, core_id, current_context, session, write,
+        clock,
+        (f'extern "C" uint8_t {core_id}(void *);' if core_id else ""),
+        (f'extern "C" uint32_t {current_context}(void *);' if current_context else ""),
+        session, write,
         (f'extern "C" void {critical_enter}(void *);'
          if critical_enter else ""),
         (f'extern "C" void {critical_exit}(void *);'
@@ -298,7 +301,7 @@ void kymo_generated_trace_service(void)
         write,
         (f"result = {busy}(kymo_generated_trace_user);"
          if busy else "/* Synchronous writer releases the buffer on return. */"),
-        clock, core_id, current_context,
+        clock, core_id or "nullptr", current_context or "nullptr",
         critical_enter or "nullptr", critical_exit or "nullptr", session,
         int(clock_options.get("domain_id", 0)),
         ("KymoMuxDataSlot_NextData" if shared else "nullptr"),
@@ -322,6 +325,21 @@ static void kymo_generated_runtime_service(void *user)
 }
 #endif'''
           if shared else "")))
+
+
+RENDERERS: list = []
+"""Extension renderers: callable(project, profile, resolved) -> dict[file name, text]."""
+
+
+def register_renderer(renderer) -> None:
+    """Register an extension that adds generated files to every snapshot."""
+    if renderer not in RENDERERS:
+        RENDERERS.append(renderer)
+
+
+def unregister_renderer(renderer) -> None:
+    if renderer in RENDERERS:
+        RENDERERS.remove(renderer)
 
 
 def _render(project: dict[str, Any], profile: str) -> dict[str, bytes]:
@@ -441,6 +459,8 @@ const KymoConfig kymo_generated_config = {{
            "kymo_trace_ids.h":"\n".join(ids)+"\n"}
     files.update(trace_outputs)
     files.update(render_exports())
+    for renderer in RENDERERS:
+        files.update(renderer(project, profile, resolved))
     return {name:data.encode("utf-8") for name,data in files.items()}
 
 

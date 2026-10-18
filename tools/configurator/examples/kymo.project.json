@@ -25,7 +25,7 @@
     }
   ],
   "contexts": [],
-  "core_config_api_version": 1,
+  "core_config_api_version": 2,
   "port": {
     "capabilities_verified": false,
     "kind": "generic"
@@ -42,6 +42,7 @@
         "x": false,
         "z": false
       },
+      "preset": "minimal",
       "trace": {
         "bindings": {},
         "buffer": {
@@ -88,6 +89,7 @@
         "x": false,
         "z": false
       },
+      "preset": "minimal",
       "trace": {
         "bindings": {},
         "buffer": {
@@ -129,6 +131,6 @@
     "ram_budget_bytes": null,
     "transport_bytes_per_second": null
   },
-  "schema_version": 1,
+  "schema_version": 2,
   "symbols": []
 }
