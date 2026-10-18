@@ -1,19 +1,41 @@
 # Changelog
 
-## Unreleased (structure and onboarding)
+## 7.0.0 - 2026-10-18
 
-- Add `KymoCore.h`, a single entry header that includes every enabled module
-  (runtime, protocol, instrumentation, and optionally the C++ sender and trace
-  recorder/mux). The Arduino `includes=` entry now points to it. All existing
-  headers remain supported.
-- Add `KYMO_COUNT_OF(array)` for channel counts and `last_sample_ms` sizing.
-- Group the switches in `kymo_build_config.h` (master, telemetry API, telemetry
-  payload, tracing) and document them in one overview table.
-- Arduino examples are now self-contained single sketches with named-field
-  configuration; `examples/common/arduino_serial_config.h` is removed.
-- README, guide and the basic example use `KymoCore.h` and named `KymoConfig`
-  fields instead of positional initializers.
-- Library code, API, resource layout and wire behavior are unchanged.
+Restructured for a simpler start. The wire format (protocol v6.2, wire version 1)
+and the feature set are unchanged; the API and file layout change. See
+"Migrating from KymoCore 6.x" in docs/GUIDE.md for the complete mapping.
+
+- One entry header `KymoCore.h`; sources grouped into `telemetry/`, `trace/`,
+  `transport/` and `common/`. Arduino `includes=` and PlatformIO `headers` point
+  to `KymoCore.h`.
+- One configuration header `kymo_config.h` (replaces `kymo_build_config.h`,
+  `kymo_features.h`, `kymo_version.h`) with version macros, all switches and all
+  resource sizes. New `KYMO_PROFILE` presets: `KYMO_PROFILE_MINIMAL` (default),
+  `KYMO_PROFILE_XYZ`, `KYMO_PROFILE_TRACE`. `KYMO_CONFIG_API_VERSION` is 2.
+- `kymo_types.h`: one `KymoStatus` for every module (new `KYMO_REJECTED`) and
+  shared `KymoClockFn`, `KymoWriteFn`, `KymoBusyFn`, `KymoServiceFn`, `KYMO_COUNT_OF`.
+- Runtime: `Kymo_Init` copies `KymoConfig` (it may be local); required fields
+  come first; `last_sample_ms` is removed and the schedule lives in
+  `KymoContext`, sized by `KYMO_MAX_CHANNELS` (default 16, up to 256).
+- Codec: `KymoProtocol_Encode`, `KymoProtocol_Decode` (returns `KymoStatus`),
+  `KymoProtocol_FrameLength`, `KymoProtocol_Crc8`.
+- C++: `Kymo` becomes `KymoSender` in `telemetry/kymo_sender.h` together with
+  `KymoStream`; `send*`/`flush` return `KymoStatus`; `setClock(KymoClockFn, user)`
+  replaces `setMillisecondCallback`.
+- Trace: `KymoTrace_Init`, `KymoTrace_Pop` and `KymoTrace_ContextReset` return
+  `KymoStatus`; `core_id` and `current_context` callbacks are optional.
+- Mux: `KymoTraceMux*` becomes `KymoMux*` in `transport/kymo_mux.h`; config fields
+  `write`, optional `busy`, `transport_user` and new `data_user`; zero
+  `max_frame_size`/`max_batch_events` select the maximum; `KymoTraceDataAdapter`
+  becomes `KymoMuxDataSlot`; `KYMO_TRACE_ADMIN_RECORD_MAX` becomes
+  `KYMO_MUX_ADMIN_RECORD_MAX`; `KymoMux_Service` returns `KYMO_OK`, `KYMO_IDLE`,
+  `KYMO_BUSY` or `KYMO_IO_ERROR`.
+- `common/`: CRC-16/CCITT, CRC-32 and u16/u64 writers shared by trace and mux.
+- Self-contained Arduino examples without a shared header; named-field setup.
+- New `test/native_test.py` (runtime, sender, common utilities, profiles,
+  structure check); CI runs it.
+- Configurator generates 7.0 code and sizes `KYMO_MAX_CHANNELS`.
 
 ## 6.4.0 - 2026-10-15
 

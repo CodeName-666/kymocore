@@ -9,12 +9,11 @@ at the end describes the detailed contracts.
 
 ![From measurement source to KymoStudio](images/architecture.png)
 
-The application owns the measurement sources, clock, configuration and
-transport drivers. `Kymo_Init` validates the static configuration and binds it
-to a context. `Kymo_Main` selects a due channel, calls the measurement
-callback, encodes the data point and offers the bytes to the transport.
-KymoStudio reassembles received fragments and assigns measurements by their
-channel ID.
+The application owns the measurement sources, clock and transport drivers.
+`Kymo_Init` validates the configuration and copies it into a context.
+`Kymo_Main` selects a due channel, calls the measurement callback, encodes the
+data point and offers the bytes to the transport. KymoStudio reassembles
+received fragments and assigns measurements by their channel ID.
 
 | Layer | Task | Interface |
 |---|---|---|
@@ -22,13 +21,39 @@ channel ID.
 | Time source | Provide monotonic milliseconds | `clock_ms(user)` |
 | Measurement source | Read Y and, if needed, X/Z | `sample(user, id, out)` |
 | Scheduler | Due times, round robin and backpressure | `Kymo_Init`, `Kymo_Main` |
-| Codec | Check values and build a little-endian frame | `kymo_encode_data` |
+| Codec | Check values and build a little-endian frame | `KymoProtocol_Encode` |
 | Transport adapter | Copy bytes or borrow them in a controlled way | `write`, optional `busy`/`service` |
 | KymoStudio | Decode, display and analyse signals | [Desktop project](https://kymotrace.de/#download) |
 
-The optional C++ class `Kymo` is an alternative push sender: the application
-decides when to send. Both APIs use the same wire format. There is no
-measurement queue in the core.
+The optional C++ class `KymoSender` is an alternative push sender: the
+application decides when to send. Both APIs use the same wire format. There is
+no measurement queue in the core.
+
+## Library layout
+
+Applications include **one header**, `<KymoCore.h>`. It pulls in every module
+the build configuration enables. The sources are grouped by task:
+
+| Folder / header | Module | Enabled by |
+|---|---|---|
+| `kymo_config.h` | Version, profile, all switches and sizes | always |
+| `kymo_types.h` | `KymoStatus` and the shared callback types | always |
+| `telemetry/kymo_protocol.h` | DATA frame codec (`KymoProtocol_*`) | always |
+| `telemetry/kymo_runtime.h` | `Kymo_Init` / `Kymo_Main` | `KYMO_ENABLE_RUNTIME=1` (default) |
+| `telemetry/kymo_sender.h` | `KymoSender` + `KymoStream` (C++) | `KYMO_ENABLE_CPP=1` |
+| `trace/kymo_instrumentation.h` | `KYMO_TRACE_*` macros | always (compile out) |
+| `trace/kymo_trace.h` | `KymoTraceRecorder` | `KYMO_ENABLE_TRACE=1` |
+| `transport/kymo_mux.h` | `KymoMux`: trace + DATA on one link | `KYMO_ENABLE_TRACE=1` |
+| `common/` | Bit, byte and CRC helpers | always |
+
+Every function that can fail returns `KymoStatus`, where `KYMO_OK` (0) always
+means success. All modules share `KymoClockFn`, `KymoWriteFn`, `KymoBusyFn`
+and `KymoServiceFn`, so one transport adapter serves runtime, sender and mux.
+
+**The whole package is platform-independent.** No file includes an SDK,
+vendor or framework header (no `Arduino.h`, HAL or RTOS headers), and no
+target macro changes the API. Hardware access always lives in application
+callbacks; the Arduino sketches under `examples/` are such applications.
 
 ## Installing with PlatformIO
 
@@ -41,7 +66,7 @@ board = esp32dev
 framework = arduino
 monitor_speed = 115200
 lib_deps =
-    codename666/KymoCore @ 6.4.0
+    codename666/KymoCore @ 7.0.0
 ```
 
 For Uno, set `platform = atmelavr@5.3.0` and `board = uno` instead. The library
@@ -52,20 +77,20 @@ pins the version:
 
 ```ini
 lib_deps =
-    https://github.com/CodeName-666/kymocore.git#v6.4.0
+    https://github.com/CodeName-666/kymocore.git#v7.0.0
 ```
 
 Alternatively, build a package from this repository:
 
 ```sh
-pio pkg pack . -o KymoCore-6.4.0.tar.gz
+pio pkg pack . -o KymoCore-7.0.0.tar.gz
 ```
 
 Copy the archive into your project and reference it there:
 
 ```ini
 lib_deps =
-    file://KymoCore-6.4.0.tar.gz
+    file://KymoCore-7.0.0.tar.gz
 ```
 
 Alternatively, copy the complete library folder to `lib/KymoCore` of your own
@@ -86,8 +111,6 @@ static KymoContext context = {};
 static KymoStatus lastStatus = KYMO_BAD_CONFIG;
 /* period_ms, id, flags: channel 0, every 20 ms, scalar value only. */
 static const KymoChannel channels[] = {{20U, 0U, 0U}};
-static uint32_t lastSampleMs[KYMO_COUNT_OF(channels)] = {};
-static KymoConfig config = {};
 
 /*******************************************************************************
  * readClockMs
@@ -136,10 +159,10 @@ static uint8_t writeBytes(void *user, const uint8_t *bytes, uint8_t length)
  ******************************************************************************/
 void setup()
 {
+    KymoConfig config = {};   /* copied by Kymo_Init, may be local */
     Serial.begin(115200);
     config.channels = channels;                     /* what */
     config.channel_count = KYMO_COUNT_OF(channels);
-    config.last_sample_ms = lastSampleMs;
     config.clock_ms = readClockMs;                  /* when */
     config.sample = readSample;                     /* which values */
     config.write = writeBytes;                      /* where to */
@@ -169,31 +192,51 @@ is in [examples/basic](../examples/basic/README.md).
 
 ## Features and configuration
 
-The defaults result in a scalar Y sender with Init/Main. For installed registry
-packages, project-wide `build_flags` are the reproducible choice: direct
-changes in the installed package may be overwritten by updates. With source
-copies, defaults can be edited in `src/kymo_build_config.h`. `kymo_features.h`
-validates them. Compiler definitions take precedence.
+All settings live in **`src/kymo_config.h`**. Precedence: compiler definitions
+(`-D...`) override an optional project header named by
+`KYMO_USER_CONFIG_HEADER`, which overrides the profile, which overrides the
+library defaults. For installed registry packages, project-wide `build_flags`
+are the reproducible choice.
 
-| Switch | Default | Effect when 1 |
-|---|---:|---|
-| `KYMO_ENABLE_RUNTIME` | 1 | Init/Main scheduler |
-| `KYMO_ENABLE_X` | 0 | Optional X coordinate |
-| `KYMO_ENABLE_Z` | 0 | Optional Z coordinate, independent of X |
-| `KYMO_ENABLE_TIMESTAMP` | 0 | Timestamp on the wire |
-| `KYMO_ENABLE_CRC` | 0 | Compute outgoing CRC |
-| `KYMO_ENABLE_DECODER` | 0 | Decode complete frames on the MCU |
-| `KYMO_ENABLE_CPP` | 0 | C++ push sender and stream abstraction |
+**Profiles** set sensible defaults in one step; each switch can still be set
+individually:
 
-For XYZ with timestamp and CRC, add:
+| Profile | Enables |
+|---|---|
+| `KYMO_PROFILE_MINIMAL` (default) | Scalar Y values, Init/Main runtime |
+| `KYMO_PROFILE_XYZ` | X, Z and timestamps |
+| `KYMO_PROFILE_TRACE` | XYZ plus trace recorder with ISR, scheduler and flow events |
 
 ```ini
 build_flags =
-    -DKYMO_ENABLE_X=1
-    -DKYMO_ENABLE_Z=1
-    -DKYMO_ENABLE_TIMESTAMP=1
+    -DKYMO_PROFILE=KYMO_PROFILE_XYZ
     -DKYMO_ENABLE_CRC=1
 ```
+
+| Switch | Default | Effect when 1 |
+|---|---:|---|
+| `KYMO_ENABLED` | 1 | 0 compiles the whole library out |
+| `KYMO_ENABLE_RUNTIME` | 1 | Init/Main scheduler |
+| `KYMO_ENABLE_CPP` | 0 | C++ push sender `KymoSender` |
+| `KYMO_ENABLE_X` | profile | Optional X coordinate |
+| `KYMO_ENABLE_Z` | profile | Optional Z coordinate, independent of X |
+| `KYMO_ENABLE_TIMESTAMP` | profile | Timestamp on the wire |
+| `KYMO_ENABLE_CRC` | 0 | Compute outgoing CRC |
+| `KYMO_ENABLE_DECODER` | 0 | Decode complete frames on the MCU |
+| `KYMO_ENABLE_TRACE` | profile | Trace recorder, instrumentation and mux |
+| `KYMO_ENABLE_TRACE_ISR` | profile | ISR events (needs TRACE) |
+| `KYMO_ENABLE_TRACE_SCHEDULER` | profile | Task events (needs TRACE_ISR) |
+| `KYMO_ENABLE_TRACE_FLOW` | profile | Flow correlation (needs TRACE) |
+
+| Size | Default | Range |
+|---|---:|---|
+| `KYMO_MAX_CHANNELS` | 16 | 1–256 channels per context, 4 bytes each |
+| `KYMO_TRACE_EVENTS_PER_CORE` | 64 | Power of two, 16–4096 |
+| `KYMO_TRACE_CORE_COUNT` | 1 | 1–2 |
+| `KYMO_TRACE_MAX_CONTEXTS` | 16 | 1–256 |
+| `KYMO_TRACE_MAX_DEPTH` | 32 | 1–255 |
+| `KYMO_TRACE_MAX_ISR_DEPTH` | 8 | 1–16 |
+| `KYMO_MUX_ADMIN_RECORD_MAX` | 512 | 64–8192 bytes |
 
 Enabling a feature allows a field; each channel's flags select it for that
 channel's frame. XYZ with timestamp uses `KYMO_ALLOWED_FLAGS`, timestamp only
@@ -201,11 +244,12 @@ channel's frame. XYZ with timestamp uses `KYMO_ALLOWED_FLAGS`, timestamp only
 since Init. Rebuild all units together: a define in the sketch alone does not
 configure separately compiled library files.
 
-Only 0 and 1 are allowed. Disabled implementations are compiled out. Invalid
-field requests are rejected, not silently dropped. Public data layouts stay the
-same; the switches mainly save code. The MCU decoder checks protected input
-even when outgoing CRC is disabled. The desktop decoder is independent of
-firmware features.
+Only 0 and 1 are allowed; invalid values and unmet dependencies stop the build.
+Disabled implementations are compiled out. Invalid field requests are
+rejected, not silently dropped. The MCU decoder checks protected input even
+when outgoing CRC is disabled. The desktop decoder is independent of firmware
+features. Test `KYMO_EFFECTIVE_*` in application code to guard optional
+resources.
 
 ## Scheduling and transmission flow
 
@@ -236,8 +280,9 @@ stays non-zero until release. Meanwhile the buffer is not overwritten.
 `service(user)` runs at the start of every valid Main call, even when busy and
 with a latched error.
 
-All configuration data must outlive its use. Each instance owns its own context
-and its own timestamp array. The APIs are not reentrant; the application takes
+Kymo_Init copies the configuration; only the channel table and user contexts
+must outlive the context. Each instance owns its own context, which also holds
+the per-channel schedule. The APIs are not reentrant; the application takes
 care of task/ISR synchronisation. Do not re-initialise or destroy while a
 driver borrows the buffer. During partial frames, other producers must not mix
 bytes into the same stream.
@@ -246,7 +291,7 @@ bytes into the same stream.
 
 ![Frame fields, descriptor bits and concrete wire examples](images/protocol.png)
 
-Package version 6.4.0, protocol v6.2 and **wire version 1** are different
+Package version 7.0.0, protocol v6.2 and **wire version 1** are different
 things. The normative contract is in [PROTOCOL.md](../PROTOCOL.md).
 
 | Offset | Size | Content |
@@ -282,7 +327,7 @@ C structures are transmitted directly.
 `0x52`/`0x53`, `0x56`/`0x57`, `0x5A`/`0x5B` and `0x5E`/`0x5F` are the same layouts
 with microsecond time; `0x50`, `0x54`, `0x58` and `0x5C` (µs without time and
 their NO_CRC variants) are invalid. Set `KYMO_FLAG_TIMESTAMP | KYMO_FLAG_TIMESTAMP_US`
-on a `KymoDataPoint` for `kymo_encode_data`. The channel runtimes use
+on a `KymoDataPoint` for `KymoProtocol_Encode`. The channel runtimes use
 millisecond clocks and reject the µs flag. Receivers older than KymoCore 6.4 /
 KymoStudio 2.5 reject µs frames as an unsupported message type.
 Other versions and message types are rejected. Firmware features can restrict
@@ -398,113 +443,91 @@ KymoCore/
   PROTOCOL.md              Normative wire contract
   CHANGELOG.md             Changes and migration
   PUBLISHING.md            Release preparation for maintainers
-  src/                     Platform-independent core and headers
+  src/
+    KymoCore.h             The one header applications include
+    kymo_config.h          Version, profile, switches and sizes
+    kymo_types.h           Status codes and shared callback types
+    telemetry/             Codec, Init/Main runtime, C++ sender
+    trace/                 Recorder, trace protocol, instrumentation
+    transport/             Mux for trace + DATA on one link
     common/                Bit, byte and CRC helpers
-  examples/basic/          SDK-free executable example
+  examples/                Portable and Arduino reference examples
+  test/                    Native tests and structural check
+  tools/configurator/      Project configurator (prototype)
   docs/                    Guide (English/German) and images
 ```
 
-This repository's CI compiles and runs the portable example and the golden
-vector test (with and without CRC) on every push. The full tests run in the
-firmware [kymoprobe](https://github.com/CodeName-666/kymoprobe): feature
-profiles, the real app decoder, package and board builds. There this library is
-included as the Git submodule `lib/KymoCore`:
+Run the complete host suite from the repository root:
 
 ```sh
-python tools/test_native.py --app ../KymoStudio
+python test/native_test.py
 python tools/test_package.py
 ```
 
-The package check builds separate consumers from the archive and compiles the
-Arduino example of the README. Among other things, the native tests check
-feature profiles, CRC, scheduling and the real app decoder. Builds do not
-replace board tests, stack measurements or timing measurements in the driver.
-Validate your own adapters on the target hardware. Package preparation and the
-remaining steps are in [PUBLISHING.md](../PUBLISHING.md) (German), changes in
+`native_test.py` builds and runs the common utilities, protocol golden vectors
+with and without CRC, the telemetry runtime in four configurations, the C++
+sender, the C entry header for every profile, the portable example, the trace
+recorder/mux suite, the compile-out suite and the single-return structural
+check. The package check builds separate consumers from the exported archive
+and compiles the README example for Uno and ESP32. Builds do not replace board
+tests, stack measurements or timing measurements in the driver. Validate your
+own adapters on the target hardware. Package preparation is described in
+[PUBLISHING.md](../PUBLISHING.md) (German), changes in
 [CHANGELOG.md](../CHANGELOG.md).
 
 ## Technical API reference
 
 The following reference specifies compiler, configuration and ownership contracts.
 
-Include `KymoCore.h` to get every enabled module; the recommended API inside it
-is `kymo_runtime.h`. The entire implementation is built
-as C++11 or newer, without heap allocation, exceptions or RTTI.
-`kymo_protocol.h` exposes the standalone codec; `kymo.h` offers an optional
-C++11 push sender. The codec and Init/Main headers retain C linkage, so existing
-C99 applications and callbacks can still use the library.
-Compile `kymo_runtime.cpp` / `kymo_protocol.cpp` with a C++11 compiler and
-link mixed C/C++ applications with the C++ toolchain. PlatformIO sets the library
-flags automatically; custom builds should use
-`-std=c++11 -fno-exceptions -fno-rtti`. Arduino builds must provide C++11 or newer.
-PlatformIO's framework/platform compatibility is unrestricted.
+Include `KymoCore.h`. The implementation is built as C++11 or newer, without
+heap allocation, exceptions or RTTI. All C entry points keep C linkage, so C99
+applications and callbacks can use the library. Link mixed C/C++ applications
+with the C++ toolchain. PlatformIO and the Arduino IDE compile the `src/`
+subfolders automatically; custom builds compile every `src/**/*.cpp` with
+`-std=c++11 -fno-exceptions -fno-rtti` and add `src/` to the include path.
+
+## Status codes
+
+| Status | Meaning |
+| --- | --- |
+| `KYMO_OK` | Success: configuration accepted, frame completely accepted, event copied, record queued |
+| `KYMO_IDLE` | Nothing to do: no channel due, no event queued, mux has nothing to send |
+| `KYMO_BUSY` | Transport busy, frame partially written or single slot occupied; call again |
+| `KYMO_SKIPPED` | Sample callback returned zero |
+| `KYMO_BAD_SAMPLE` | Non-finite coordinate, unsupported flags or invalid frame |
+| `KYMO_BAD_CONFIG` | Invalid argument/configuration or uninitialized object |
+| `KYMO_IO_ERROR` | Impossible write count; fault latched until repair and reinit |
+| `KYMO_REJECTED` | Request refused in the current state (e.g. trace context still open) |
+
+`KYMO_OK` from Main means the driver accepted the frame, not physical delivery.
 
 ## Minimal build and optional features
 
-The default build contains scalar Y encoding and the C++11 Init/Main runtime.
+The default build contains scalar Y encoding and the Init/Main runtime.
 Optional implementations are excluded by the preprocessor, not merely disabled
-at runtime. Edit the `KYMO_ENABLE_*` values directly in
-**`src/kymo_build_config.h`**: `0` disables a feature, `1` enables it.
-This header is included automatically by all library and application APIs;
-no PlatformIO setting or sketch-local define is required. `kymo_features.h`
-loads the configuration and checks the values.
+at runtime. Set `KYMO_ENABLE_RUNTIME=0` for an encoder-only build; add
+`KYMO_ENABLE_CPP=1` for a push sender without scheduler. With `KYMO_ENABLED=0`
+the library contributes no symbols at all; guard application-owned telemetry
+resources with the `KYMO_EFFECTIVE_*` macros and use the `KYMO_TRACE_*` macros,
+which compile to no-ops. Unguarded direct API calls deliberately fail to
+compile in an off build.
 
-| Build switch | Default | Enables |
-| --- | --- | --- |
-| `KYMO_ENABLE_RUNTIME` | `1` | Cooperative scheduling through Init/Main |
-| `KYMO_ENABLE_X` | `0` | X coordinates / XY data |
-| `KYMO_ENABLE_Z` | `0` | Z coordinates / YZ data, independently of X |
-| `KYMO_ENABLE_TIMESTAMP` | `0` | Wire timestamps; scheduling still uses a clock |
-| `KYMO_ENABLE_CRC` | `0` | CRC on outgoing frames |
-| `KYMO_ENABLE_DECODER` | `0` | MCU decoding, including CRC verification |
-| `KYMO_ENABLE_CPP` | `0` | Optional C++ push sender and stream abstraction |
-
-Only `0` and `1` are accepted. Rebuild the entire library and application after
-editing the header. No switch depends on the MCU.
-
-Compiler definitions remain optional **overrides**: `-DKYMO_ENABLE_X=1`
-takes precedence over the internal header through its `#ifndef` guards.
-Apply overrides to **all library and application compilation units**. A define
-in a sketch alone does not configure separately compiled library sources.
-Remove matching `build_flags` entries when the internal header should control
-those features; supplied examples explicitly override their required options.
-
-For example, optional PlatformIO overrides for a timestamped XYZ sender with CRC:
-
-```ini
-build_flags =
-    -DKYMO_ENABLE_X=1
-    -DKYMO_ENABLE_Z=1
-    -DKYMO_ENABLE_TIMESTAMP=1
-    -DKYMO_ENABLE_CRC=1
-```
-
-Set `KYMO_ENABLE_RUNTIME=0` for an encoder-only build. For a C++ push sender
-without the scheduler, also set `KYMO_ENABLE_CPP=1`. Decoder and C++/runtime
-entrypoints are unavailable when their module is disabled. CRC code is absent
-unless either outgoing CRC or MCU decoding is enabled. The enabled MCU decoder
-still verifies protected legacy input even when outgoing CRC is disabled.
-
-Disabled X/Z/time flags return zero from encoding, `KYMO_BAD_CONFIG` from
-Init, and failure from decoding. C++ requests for disabled fields return false.
-Fields are never silently removed. `KYMO_ALLOWED_FLAGS` describes the wire
-protocol; `KYMO_SUPPORTED_FLAGS` describes this build. KymoStudio continues
-to accept all wire layouts independently of firmware feature selection.
+Disabled X/Z/time flags return zero from `KymoProtocol_Encode`,
+`KYMO_BAD_CONFIG` from Init and `KYMO_BAD_SAMPLE` from decoding and from the
+C++ sender. Fields are never silently removed. `KYMO_ALLOWED_FLAGS` describes
+the wire protocol; `KYMO_SUPPORTED_FLAGS` describes this build. KymoStudio
+accepts all wire layouts independently of firmware feature selection.
 
 Buffer bounds, finite-value checks, short-write handling and asynchronous buffer
-ownership remain mandatory. Public structures and the maximum 21-byte buffer
-stay unchanged: these switches primarily reduce code, not allocated context RAM.
-Unused modules may already be eliminated by a linker with section garbage
-collection/LTO; feature switches also remove optional branches within used code.
+ownership remain mandatory. The maximum frame stays 21 bytes; the switches
+reduce code, `KYMO_MAX_CHANNELS` sizes the context.
 
-## Static configuration
-
-Define this in your application's `kymo_config.c` (or `.cpp`):
+## Runtime configuration
 
 ```c
 #include <KymoCore.h>
 
-static uint32_t clock_ms(void *user); /* your monotonic millisecond clock */
+static uint32_t clock_ms(void *user);  /* your monotonic millisecond clock */
 static uint8_t read_sample(void *user, uint8_t id, KymoSample *out);
 static uint8_t write_bytes(void *user, const uint8_t *bytes, uint8_t length);
 
@@ -513,51 +536,42 @@ static const KymoChannel channels[] = {
     {20, 0, 0},
     {100, 1, 0}
 };
-static uint32_t last_sample_ms[KYMO_COUNT_OF(channels)];
-KymoConfig kymo_config; /* zero-initialized: optional fields stay NULL */
-
-void kymo_config_setup(void)
-{
-    kymo_config.channels = channels;
-    kymo_config.channel_count = KYMO_COUNT_OF(channels);
-    kymo_config.last_sample_ms = last_sample_ms;
-    kymo_config.clock_ms = clock_ms;
-    kymo_config.sample = read_sample;
-    kymo_config.write = write_bytes;
-    /* optional: clock_user, sample_user, busy, service, transport_user */
-}
-```
-
-Implement the three callbacks in that file. `read_sample` assigns `out->value`
-and optional `out->x` / `out->z`; returning zero skips a measurement until its
-next scheduled interval. It can read shared application parameters through
-`sample_user`. The runtime zero-initializes all sample fields before calling it.
-Hardware handles belong in `transport_user`; clocks can use `clock_user`.
-
-Initialize hardware first, then call:
-
-```c
 static KymoContext kymo;
-kymo_config_setup();
-if (Kymo_Init(&kymo, &kymo_config) != KYMO_OK) {
-    /* handle invalid configuration */
+
+KymoStatus kymo_setup(void)
+{
+    KymoConfig config = {0};             /* copied by Kymo_Init */
+    config.channels = channels;          /* required */
+    config.channel_count = KYMO_COUNT_OF(channels);
+    config.clock_ms = clock_ms;          /* required */
+    config.sample = read_sample;         /* required */
+    config.write = write_bytes;          /* required */
+    /* optional: busy, service, clock_user, sample_user, transport_user */
+    return Kymo_Init(&kymo, &config);
 }
+
 /* From your existing cyclic task: */
-KymoStatus status = Kymo_Main(&kymo);
+void kymo_cycle(void) { (void)Kymo_Main(&kymo); }
 ```
 
-Config, channels and last_sample_ms must remain alive. Do not mutate config or
-channels after Init. Every instance needs its own context and last_sample_ms
-array. Hardware setup remains the application's responsibility. Configuration
-is compiled data, not a runtime file requiring a filesystem/parser.
+`read_sample` assigns `out->value` and optional `out->x` / `out->z`; returning
+zero skips a measurement until its next interval. It can read shared
+application parameters through `sample_user`. The runtime zero-initializes all
+sample fields before calling it. Hardware handles belong in `transport_user`;
+clocks can use `clock_user`.
+
+`Kymo_Init` copies the configuration, so the `KymoConfig` object may be a local
+variable. The channel table and all user contexts must stay alive and
+unchanged. Every instance needs its own `KymoContext`, which also holds the
+per-channel schedule. Hardware setup remains the application's responsibility.
 
 ## Scheduling and memory
 
-- 1–256 unique channel IDs; IDs, flags, status, TX lengths and offsets are bytes.
+- 1–`KYMO_MAX_CHANNELS` channels (up to 256) with unique byte IDs.
 - Periods are uint32 milliseconds, limited to INT32_MAX; zero means every
   eligible Main invocation. First samples are due immediately.
-- One fixed **21-byte TX buffer** per context and **4 bytes runtime state per
-  channel**. Config is separate and immutable. No measurement queue or heap.
+- One fixed **21-byte TX buffer** and **4 bytes of state per possible channel**
+  inside each context, plus the configuration copy. No measurement queue or heap.
 - At most one sample callback and one transport write per Main; at most N
   channel checks. Round-robin selection avoids starvation. Call Main faster
   than the sum of configured sample rates; short writes need additional calls.
@@ -565,12 +579,12 @@ is compiled data, not a runtime file requiring a filesystem/parser.
   value/timestamp; after it finishes, overdue channels sample current values.
   There is no attempt to replay missed samples or an unbounded catch-up burst.
 - uint32 subtraction handles clock rollover. Invoke Main at least once within
-  INT32_MAX ms. Wire timestamps wrap after approximately 49.7 days, per v6.
-- All entrypoints are single-task/non-reentrant. Synchronize application values
+  INT32_MAX ms. Wire timestamps wrap after approximately 49.7 days.
+- All entry points are single-task/non-reentrant. Synchronize application values
   shared with interrupts. Do not reinitialize while DMA/USB borrows a buffer.
-- Native pointer/numeric structs remain naturally aligned. Explicit byte
-  encoding avoids packed structs, enum-width and endian dependencies. IEEE-754
-  binary32 floats are required; do not enable finite-math-only/fast-math modes.
+- Explicit byte encoding avoids packed structs, enum-width and endian
+  dependencies. IEEE-754 binary32 floats are required; do not enable
+  finite-math-only/fast-math modes.
 
 ## Transport callbacks
 
@@ -597,7 +611,7 @@ order guarantee: a lost datagram loses its frames, never the following ones. TCP
 partial writes. CAN-FD padding must be removed before decoding a complete frame
 in an adapter; Classic CAN uses the separate mapping described in PROTOCOL.md.
 
-| Main result | Meaning |
+| Main result | Meaning (see Status codes) |
 | --- | --- |
 | KYMO_OK | Complete frame accepted by driver; not a delivery acknowledgement |
 | KYMO_IDLE | No sample due |
@@ -607,56 +621,135 @@ in an adapter; Classic CAN uses the separate mapping described in PROTOCOL.md.
 | KYMO_BAD_CONFIG | Null/uninitialized context or invalid Init configuration |
 | KYMO_IO_ERROR | Impossible write count; fault latched until repair/reinit |
 
-## Optional C++ push API
+## Optional C++ push sender
 
-Existing `Kymo`, `send`, `send2D`, `send3D`, and timestamp setup remain.
 Compile with `KYMO_ENABLE_CPP=1` and enable the desired X/Z/time features.
-`send*` now returns true when a point is accepted into the fixed buffer; false
-means busy, invalid data, no transport, or a driver fault. After acceptance,
-call `flush()` cyclically until true to finish any short write. A second point
-is rejected while the first is pending. The cyclic C API handles this scheduling
-automatically and is recommended for new integrations.
+Derive a `KymoStream` adapter for your transport and hand it to `KymoSender`:
+
+```cpp
+class UartStream : public KymoStream {
+public:
+    size_t write(const uint8_t *data, size_t length) override { /* driver */ }
+};
+static UartStream uart;
+static KymoSender sender(uart);
+
+void setup() { sender.setClock(read_clock_ms); }      /* KymoClockFn */
+void loop()
+{
+    if (sender.flush() == KYMO_OK) {                   /* previous frame done */
+        (void)sender.send(0, read_sensor(), true);     /* value + timestamp */
+    }
+}
+```
+
+`send`, `send2D` and `send3D` return `KYMO_OK` once the point is accepted into
+the single frame buffer. Afterwards call `flush()` cyclically until it returns
+`KYMO_OK`. While a frame is pending, new points are rejected with `KYMO_BUSY`.
+Invalid data or disabled fields return `KYMO_BAD_SAMPLE`, a missing stream
+`KYMO_BAD_CONFIG`, a driver over-report latches `KYMO_IO_ERROR` until `begin()`.
 
 `KymoStream::busy()` defaults to false, requiring write to copy the data.
-Override it for borrowed buffers. `Kymo` instances are non-copyable; stop
-transfers before begin/reinitialization or destruction.
+Override it for borrowed buffers. `KymoSender` is non-copyable; stop transfers
+before `begin()` or destruction. The cyclic C API handles scheduling
+automatically and is recommended for new integrations.
+
+## Execution tracing and the transport mux
+
+With `KYMO_ENABLE_TRACE=1` (or `KYMO_PROFILE_TRACE`), `KymoTraceRecorder`
+records scope, marker, ISR, task and flow events into fixed per-core rings,
+and `KymoMux` sends them, administrative records and telemetry frames over a
+single link. Only the recorder clock is required:
+
+```c
+static KymoTraceRecorder recorder;
+static KymoMux mux;
+static KymoMuxDataSlot slot;               /* runtime -> mux hand-over */
+
+void trace_setup(void)
+{
+    KymoTraceConfig trace = {0};
+    KymoMuxConfig link = {0};
+    KymoConfig telemetry = {0};
+    trace.clock_ticks = read_cycle_counter;          /* required */
+    (void)KymoTrace_Init(&recorder, &trace);
+    (void)KymoMuxDataSlot_Init(&slot);
+    link.recorder = &recorder;                       /* required */
+    link.write = uart_write;                         /* required */
+    link.next_data = KymoMuxDataSlot_NextData;
+    link.data_user = &slot;
+    (void)KymoMux_Init(&mux, &link);
+    /* ...channels, clock and sample as above... */
+    telemetry.write = KymoMuxDataSlot_Write;
+    telemetry.busy = KymoMuxDataSlot_IsBusy;
+    telemetry.transport_user = &slot;
+    (void)Kymo_Init(&kymo, &telemetry);
+}
+
+void cycle(void)
+{
+    KYMO_TRACE_SCOPE(&recorder, 1u, SYMBOL_CYCLE);   /* C++; or ENTER/EXIT */
+    (void)Kymo_Main(&kymo);
+    (void)KymoMux_Service(&mux);
+}
+```
+
+`core_id`, `current_context` and the critical-section pair are optional.
+Without critical callbacks the application serializes all recorder access.
+The wire format is described in [TRACE_PROTOCOL.md](TRACE_PROTOCOL.md).
+
+## Platform independence
 
 The entire library, including C++ wrappers, has no vendor/SDK dependency or
-conditional target API. It knows only standard C/C++ types, configured callbacks
-and the abstract KymoStream. The millisecond callback always returns uint32_t.
-
-Hardware adapters belong to the application. Each small Arduino example
-keeps its callbacks in its own self-contained sketch. Larger transport,
-performance and trace applications and optional C++ hardware adapters live in
-KymoProbe; they are not part of this library package.
-
-Migration for the earlier Arduino C++ convenience overload: use
-`PrintStream stream(Serial); Kymo sender(stream);` after including the
-application-side Arduino adapter. Direct `Kymo(Serial)` and `begin(Serial)`
-are removed. Wrap millis() with `uint32_t clock_ms() { return millis(); }` when
-passing it to the C++ timestamp setter. The C Init/Main API is unchanged.
-Consumers of the old STM32 header must include the example/application adapter
-from its new location. Recompile all C++ consumers after this interface cleanup.
+conditional target API. It knows only standard C/C++ types, configured
+callbacks and the abstract `KymoStream`. Hardware adapters belong to the
+application. Each small Arduino example keeps its callbacks in its own
+self-contained sketch. Larger transport, performance and trace applications
+live in KymoProbe; they are not part of this library package.
 
 ## Compatibility and verification
 
-The [wire contract](../PROTOCOL.md) is **v6.2 / wire version 1**. CRC calculation
-is **disabled by default** for C and C++ senders. Descriptor bit 0 marks NO_CRC;
-the final byte remains present as a zero trailer, keeping frames at 9–21 bytes.
-Decoders ignore that trailer for NO_CRC and still validate legacy CRC frames.
+The [wire contract](../PROTOCOL.md) is **v6.2 / wire version 1** and is
+unchanged by KymoCore 7.0. CRC calculation is **disabled by default**.
+Descriptor bit 0 marks NO_CRC; the final byte remains present as a zero
+trailer, keeping frames at 9–21 bytes. Decoders ignore that trailer for NO_CRC
+and still validate CRC frames.
 
 To enable sender CRC, compile the library with `-DKYMO_ENABLE_CRC=1` (PlatformIO:
 `build_flags = -DKYMO_ENABLE_CRC=1`). A define only in the application source
-does not configure separately compiled library code. No public type/layout changes.
-Use the updated KymoStudio for the default mode; older receivers require CRC enabled.
-The Python encoder also defaults to disabled; pass `crc_enabled=True` to enable it.
+does not configure separately compiled library code. Use the updated KymoStudio
+for the default mode; older receivers require CRC enabled.
 
-From the repository root: `python tools/test_native.py --app ../KymoStudio`.
-Minimal and independent feature profiles are tested, including symbol absence
-for disabled modules and rejection of invalid switch values. Full builds test
-both CRC modes. This covers codec bounds/CRC/flags, round-robin scheduling, clock wrap, invalid
-configuration, backpressure, asynchronous buffers, independent instances,
-C++ compatibility and 256 real C-generated channels decoded by the app.
+`python test/native_test.py` tests the minimal build and the profiles,
+including symbol absence for disabled modules, rejection of invalid switch,
+profile and size values, codec bounds/CRC/flags, round-robin scheduling,
+short writes, busy transports, fault latching, configuration copy and the
+trace recorder/mux wire vectors.
+
+## Migrating from KymoCore 6.x
+
+KymoCore 7.0 changes structure and names, not the wire format or features.
+
+| 6.x | 7.0 |
+|---|---|
+| `#include <kymo_runtime.h>` etc. | `#include <KymoCore.h>` |
+| `kymo_build_config.h`, `kymo_features.h`, `kymo_version.h` | `kymo_config.h` |
+| `KymoConfig.last_sample_ms` + own array | removed; state lives in `KymoContext` (`KYMO_MAX_CHANNELS`) |
+| `KymoConfig` must outlive the context | copied by `Kymo_Init`; may be local |
+| Positional `KymoConfig` initializer | field order changed; assign fields by name |
+| `KymoProtocol_Encode` / `KymoProtocol_Decode` | `KymoProtocol_Encode` / `KymoProtocol_Decode` (returns `KymoStatus`) |
+| `kymo_frame_length` / `kymo_crc8` | `KymoProtocol_FrameLength` / `KymoProtocol_Crc8` |
+| `Kymo`, `kymo.h`, `kymo_stream.h` | `KymoSender`, `telemetry/kymo_sender.h` (includes `KymoStream`) |
+| `send*()` / `flush()` return `bool` | return `KymoStatus` (`KYMO_OK` = accepted/complete) |
+| `setMillisecondCallback(uint32_t (*)())` | `setClock(KymoClockFn, void *user)` |
+| `KymoTrace_Init/Pop/ContextReset` return 1/0 | return `KymoStatus` (`KYMO_OK`, `KYMO_IDLE`, `KYMO_REJECTED`) |
+| `KymoTraceMux*`, `kymo_transport_mux.h` | `KymoMux*`, `transport/kymo_mux.h` |
+| `KymoTraceMux_Service` returns 0/1/2 | returns `KYMO_IDLE`/`KYMO_BUSY`, `KYMO_OK`, `KYMO_IO_ERROR` |
+| `KymoTraceMuxConfig.write_frame/is_busy/user` | `write`, `busy` (optional), `transport_user`, plus `data_user` |
+| `KymoTraceDataAdapter_*` | `KymoMuxDataSlot_*` |
+| `KYMO_TRACE_ADMIN_RECORD_MAX` | `KYMO_MUX_ADMIN_RECORD_MAX` |
+| `KymoTraceConfig.core_id/current_context` required | optional (NULL = core 0 / unknown context) |
+| `KYMO_CONFIG_API_VERSION` 1 | 2 |
 
 ## Coding rules and shared utilities
 
@@ -668,7 +761,7 @@ test runner and hence CI. Archived prototypes and the independent Events
 submodule are outside the active production scope.
 
 The independent [common component](../src/common/README.md) provides reusable
-bit/bitset operations, little-endian byte conversion and generic CRC8. Constant
+bit/bitset operations, little-endian byte conversion, CRC8, CRC-16 and CRC-32. Constant
 mask combinations use `EMB_U8_OR`; runtime helpers use typed static inline
 functions with checked shift counts. They are bundled in the package, requiring
 no separate framework or library installation. Macros are not assumed to be

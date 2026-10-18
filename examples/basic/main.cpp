@@ -14,11 +14,9 @@ static uint32_t sTickMs = 0U;
 static uint8_t sCapturedFrame[KYMO_FRAME_MAX_SIZE] = {};
 static uint8_t sCapturedLength = 0U;
 static KymoContext sContext = {};
-static KymoConfig sConfig = {};
 
 /* period_ms, id, flags: channel 7, every 20 ms, scalar value only. */
 static const KymoChannel sChannels[] = {{20U, 7U, 0U}};
-static uint32_t sLastSampleMs[KYMO_COUNT_OF(sChannels)] = {};
 
 /** @brief Read the simulated monotonic clock.
  * @param[in] pUser Unused; pass nullptr.
@@ -88,13 +86,13 @@ int main()
 {
     int result = 0;
     KymoStatus status = KYMO_BAD_CONFIG;
-    sConfig.channels = sChannels;
-    sConfig.channel_count = KYMO_COUNT_OF(sChannels);
-    sConfig.last_sample_ms = sLastSampleMs;
-    sConfig.clock_ms = readClockMs;
-    sConfig.sample = readSample;
-    sConfig.write = writeFrame;
-    status = Kymo_Init(&sContext, &sConfig);
+    KymoConfig config = {};   /* copied by Kymo_Init; may be local */
+    config.channels = sChannels;
+    config.channel_count = KYMO_COUNT_OF(sChannels);
+    config.clock_ms = readClockMs;
+    config.sample = readSample;
+    config.write = writeFrame;
+    status = Kymo_Init(&sContext, &config);
     if (status != KYMO_OK) {
         result = 1;
     }

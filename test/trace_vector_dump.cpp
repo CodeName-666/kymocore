@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial */
 #include <stdio.h>
 #include <string.h>
-#include "kymo_trace_protocol.h"
+#include "trace/kymo_trace_protocol.h"
 int main(void)
 {
     KymoTraceEvent event;

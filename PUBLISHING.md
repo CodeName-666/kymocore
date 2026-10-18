@@ -29,11 +29,18 @@ im Registry-Frontend nach Veröffentlichung zusätzlich prüfen.
 
 ## Lokale Prüfung
 
-Im Firmware-Repository kymoprobe (Submodul initialisiert), Python 3.10+, GCC/G++ und PlatformIO auf PATH:
+Im KymoCore-Repository (Python 3.10+, GCC/G++ und PlatformIO auf PATH):
+
+```sh
+python test/native_test.py
+python tools/test_package.py
+python -m pytest -q tools/configurator/tests
+```
+
+Zusätzlich im Firmware-Repository kymoprobe (Submodul initialisiert):
 
 ```sh
 python tools/test_native.py --app ../KymoStudio
-python tools/test_package.py
 pio run -e nodemcu-32s
 pio run -d examples/arduino/multi_sensor_example -e uno
 pio run -d examples/esp32/wifi_mqtt_example -e esp32dev
@@ -47,7 +54,7 @@ Diese Verbraucher installieren ausschließlich das Archiv, keine Repo-Symlinks.
 Der schnelle Modus `--skip-firmware` lässt nur die beiden Boardbuilds aus.
 Buildartefakte und getrennte Verbraucher liegen unter `.pio/package/`.
 
-Ergebnis ist `KymoCore-6.4.0.tar.gz` mit separater SHA256-Datei. Das Archiv
+Ergebnis ist `KymoCore-7.0.0.tar.gz` mit separater SHA256-Datei. Das Archiv
 enthält den aktuellen Arbeitsstand einschließlich neuer, noch uncommitteter
 Dateien. Nach Änderungen neu packen und prüfen. CI prüft das Paket ebenfalls;
 ein lokal erfolgreicher Lauf beweist keinen erfolgreichen Remote-CI-Lauf.
@@ -60,7 +67,7 @@ keine Abhängigkeit der Library oder des Paketchecks.
 
 1. PlatformIO-Account oder Organisation und Schreibberechtigung bestimmen.
    GitHub-Owner und PlatformIO-Owner müssen nicht identisch sein.
-2. Mit `pio pkg show codename666/KymoCore@6.4.0` prüfen, ob die Version schon
+2. Mit `pio pkg show codename666/KymoCore@7.0.0` prüfen, ob die Version schon
    existiert. Netzwerk- oder Authentifizierungsfehler beweisen keine freie Version.
    Ein einmal veröffentlichtes Name-/Versionspaar lässt sich nicht erneut
    verwenden, auch nicht nach dem Löschen. Bei Bedarf beide Manifeste,
@@ -89,11 +96,11 @@ anmelden und das geprüfte Archiv veröffentlichen:
 
 ```sh
 pio account login
-pio pkg publish .pio/package/KymoCore-6.4.0.tar.gz --owner codename666 --type library
+pio pkg publish .pio/package/KymoCore-7.0.0.tar.gz --owner codename666 --type library
 ```
 
 Danach die Registry-Seite und Bilder öffnen, `pio pkg show` prüfen und in einem
-frischen Projekt `codename666/KymoCore @ 6.4.0` installieren. Das validiert die
+frischen Projekt `codename666/KymoCore @ 7.0.0` installieren. Das validiert die
 Registry-Auslieferung zusätzlich zum bereits geprüften lokalen Archiv.
 
 Hardwaretests sind gesondert nötig: Flashen, Live-Übertragung, DMA/IRQ, USB und

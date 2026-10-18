@@ -1,11 +1,11 @@
 /* SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
  * Copyright (c) 2026 Christof Seidel */
-#include "kymo_features.h"
+#include "../kymo_config.h"
 #if KYMO_ENABLED
 #include "kymo_protocol.h"
-#include "common/embedded_bytes.h"
+#include "../common/embedded_bytes.h"
 #if KYMO_ENABLE_CRC || KYMO_ENABLE_DECODER
-#include "common/embedded_crc.h"
+#include "../common/embedded_crc.h"
 #endif
 #include <math.h>
 
@@ -15,9 +15,10 @@
 /* The microsecond unit is meaningless without a timestamp field. */
 static uint8_t flags_valid(uint8_t flags)
 {
-    return (uint8_t)(emb_u8_only_bits(flags, KYMO_CODEC_FLAGS) &&
+    uint8_t valid = (uint8_t)(emb_u8_only_bits(flags, KYMO_CODEC_FLAGS) &&
         (!emb_u8_has_any(flags, KYMO_FLAG_TIMESTAMP_US) ||
          emb_u8_has_any(flags, KYMO_FLAG_TIMESTAMP)));
+    return valid;
 }
 
 /*******************************************************************************
@@ -42,9 +43,9 @@ static uint8_t point_valid(const KymoDataPoint *point)
 
 #if KYMO_ENABLE_CRC || KYMO_ENABLE_DECODER
 /*******************************************************************************
- * kymo_crc8
+ * KymoProtocol_Crc8
  ******************************************************************************/
-uint8_t kymo_crc8(const uint8_t *data, size_t length)
+uint8_t KymoProtocol_Crc8(const uint8_t *data, size_t length)
 {
     uint8_t result = emb_crc8_msb(data, length, 0x07u, 0u);
     return result;
@@ -53,9 +54,9 @@ uint8_t kymo_crc8(const uint8_t *data, size_t length)
 #endif
 
 /*******************************************************************************
- * kymo_frame_length
+ * KymoProtocol_FrameLength
  ******************************************************************************/
-size_t kymo_frame_length(uint8_t descriptor)
+size_t KymoProtocol_FrameLength(uint8_t descriptor)
 {
     size_t length = 0;
     if ((emb_u8_mask(descriptor, KYMO_DESCRIPTOR_VERSION_MASK) == KYMO_DESCRIPTOR_DATA) &&
@@ -83,9 +84,9 @@ size_t kymo_frame_length(uint8_t descriptor)
 }
 
 /*******************************************************************************
- * kymo_encode_data
+ * KymoProtocol_Encode
  ******************************************************************************/
-size_t kymo_encode_data(const KymoDataPoint *point,
+size_t KymoProtocol_Encode(const KymoDataPoint *point,
                            uint8_t *output, size_t output_capacity)
 {
     size_t result = 0;
@@ -94,7 +95,7 @@ size_t kymo_encode_data(const KymoDataPoint *point,
 #if !KYMO_ENABLE_CRC
         descriptor = EMB_U8_OR(descriptor, KYMO_DESCRIPTOR_NO_CRC);
 #endif
-        size_t required = kymo_frame_length(descriptor);
+        size_t required = KymoProtocol_FrameLength(descriptor);
         if ((required != 0u) && (output_capacity >= required)) {
             size_t offset = 4;
             output[0] = KYMO_SYNC_0;
@@ -122,7 +123,7 @@ size_t kymo_encode_data(const KymoDataPoint *point,
             }
 #endif
 #if KYMO_ENABLE_CRC
-            output[offset] = kymo_crc8(output + 2, offset - 2u);
+            output[offset] = KymoProtocol_Crc8(output + 2, offset - 2u);
 #else
             output[offset] = 0u;
 #endif
@@ -140,11 +141,11 @@ static uint8_t frame_valid(const uint8_t *frame, size_t length)
 {
     uint8_t valid = 0;
     if ((frame != nullptr) && (length >= KYMO_FRAME_MIN_SIZE)) {
-        size_t expected = kymo_frame_length(frame[2]);
+        size_t expected = KymoProtocol_FrameLength(frame[2]);
         if ((frame[0] == KYMO_SYNC_0) && (frame[1] == KYMO_SYNC_1) &&
             (expected != 0u) && (expected == length)) {
             valid = (uint8_t)(emb_u8_has_any(frame[2], KYMO_DESCRIPTOR_NO_CRC) ||
-                (kymo_crc8(frame + 2, length - 3u) == frame[length - 1u]));
+                (KymoProtocol_Crc8(frame + 2, length - 3u) == frame[length - 1u]));
         }
     }
     return valid;
@@ -182,18 +183,21 @@ static void decode_payload(const uint8_t *frame, KymoDataPoint *point)
 }
 
 /*******************************************************************************
- * kymo_decode_data
+ * KymoProtocol_Decode
  ******************************************************************************/
-int kymo_decode_data(const uint8_t *frame, size_t frame_length,
-                        KymoDataPoint *output)
+KymoStatus KymoProtocol_Decode(const uint8_t *frame, size_t frame_length,
+                               KymoDataPoint *output)
 {
-    int result = 0;
-    if ((output != nullptr) && frame_valid(frame, frame_length)) {
-        KymoDataPoint point = {};
-        decode_payload(frame, &point);
-        if (point_valid(&point)) {
-            *output = point;
-            result = 1;
+    KymoStatus result = KYMO_BAD_CONFIG;
+    if (output != nullptr) {
+        result = KYMO_BAD_SAMPLE;
+        if (frame_valid(frame, frame_length)) {
+            KymoDataPoint point = {};
+            decode_payload(frame, &point);
+            if (point_valid(&point)) {
+                *output = point;
+                result = KYMO_OK;
+            }
         }
     }
     return result;

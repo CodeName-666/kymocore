@@ -52,8 +52,7 @@ class GeneratedTraceRoundTripTests(unittest.TestCase):
             snapshot = generate(project, "development", root / "generated")
             source = root / "roundtrip.cpp"
             source.write_text(r'''#include <kymo_generated_config.h>
-#include <kymo_trace_protocol.h>
-#include <kymo_runtime.h>
+#include <KymoCore.h>
 #include <cassert>
 #include <cstdint>
 #include <vector>
@@ -86,14 +85,14 @@ extern "C" void kymo_port_service(void *) {}
 
 int main()
 {
-    assert(kymo_generated_trace_init(&frames) == 1u);
+    assert(kymo_generated_trace_init(&frames) == KYMO_OK);
     KymoTrace_Enter(&kymo_generated_trace_recorder, 1u, 1u);
     KymoTrace_Exit(&kymo_generated_trace_recorder, 1u, 1u);
 
     const uint8_t legacy_frame[9] = {
         0xa5u, 0x5au, 0x40u, 7u, 0u, 0u, 0x80u, 0x3fu, 0u
     };
-    assert(KymoTraceDataAdapter_Write(
+    assert(KymoMuxDataSlot_Write(
         &kymo_generated_trace_data_adapter, legacy_frame, 9u) == 9u);
 
     for (uint16_t cycle = 0u; cycle < 32u; ++cycle) {
@@ -123,7 +122,7 @@ int main()
         saw_data = saw_data || frame[3] == KYMO_TRACE_PAYLOAD_DATA_V1;
     }
     assert(saw_metadata && saw_dictionary && saw_batch && saw_data);
-    assert(KymoTraceDataAdapter_IsBusy(
+    assert(KymoMuxDataSlot_IsBusy(
         &kymo_generated_trace_data_adapter) == 0u);
     return 0;
 }
@@ -135,7 +134,7 @@ int main()
                 '-DKYMO_USER_CONFIG_HEADER="kymo_user_config.h"',
             ]
             objects = []
-            sources = sorted((CORE / "src").glob("*.cpp")) + [
+            sources = sorted((CORE / "src").rglob("*.cpp")) + [
                 snapshot / "kymo_generated_config.cpp"
             ]
             for source_path in sources:

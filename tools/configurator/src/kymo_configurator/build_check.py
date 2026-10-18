@@ -44,7 +44,7 @@ def inspect_entry(entry: dict) -> dict:
         filtered.append(arg)
     with tempfile.TemporaryDirectory(prefix='kymo-config-audit-') as temp:
         probe = Path(temp) / ('audit.c' if source.suffix == '.c' else 'audit.cpp')
-        lines = [f'#include "{source.as_posix()}"', '#include "kymo_features.h"']
+        lines = [f'#include "{source.as_posix()}"', '#include "kymo_config.h"']
         for name in MACROS:
             lines.extend((f'#if {name}', f'KYMO_AUDIT "{name}" 1', '#else', f'KYMO_AUDIT "{name}" 0', '#endif'))
         probe.write_text('\n'.join(lines) + '\n', encoding='utf-8')

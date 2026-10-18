@@ -149,7 +149,7 @@ Bytes: A5 5A 52 03 00 00 20 C0 87 D6 12 00 97
 Size:  13
 ```
 
-Microsecond timestamps are encoded with `kymo_encode_data` and
+Microsecond timestamps are encoded with `KymoProtocol_Encode` and
 `KYMO_FLAG_TIMESTAMP | KYMO_FLAG_TIMESTAMP_US` on a `KymoDataPoint`
 (`KYMO_ENABLE_TIMESTAMP=1`); `KymoDataPoint::timestamp_ms` then holds µs.
 The cyclic runtime and C++ sender keep millisecond clocks and reject the flag.
@@ -163,25 +163,25 @@ The default firmware build supports scalar Y only. Enable `KYMO_ENABLE_X`,
 be removed with `KYMO_ENABLE_RUNTIME=0`. MCU decoding is opt-in through
 `KYMO_ENABLE_DECODER=1`; it rejects layouts disabled in that firmware build.
 The wire layout and the desktop receiver's supported formats are unchanged.
-Edit `src/kymo_build_config.h` for internal feature configuration;
-`src/kymo_features.h` validates it. Compiler definitions may override the header.
+All settings and profiles live in `src/kymo_config.h`, which also validates them.
+Compiler definitions may override the header.
 
 KymoCore provides a portable C++11 cyclic API. The v6.1 NO_CRC extension keeps
-wire version 1 and all frame sizes. `Kymo_Init(context, config)` binds a static configuration;
+wire version 1 and all frame sizes. `Kymo_Init(context, config)` validates and copies a configuration;
 `Kymo_Main(context)` schedules samples, encodes frames and resumes short
 writes. See [README.md](README.md) for configuration and transport ownership.
 
-The optional C++ push API remains available:
+The optional C++ push sender `KymoSender` remains available:
 
 ```cpp
-kymo.send(0, temperature);           // Y, 9 bytes
-kymo.send2D(1, position, force);     // X/Y, 13 bytes
-kymo.send3D(2, x, y, z, true);        // X/Y/Z + timestamp, 21 bytes
+sender.send(0, temperature);           // Y, 9 bytes
+sender.send2D(1, position, force);     // X/Y, 13 bytes
+sender.send3D(2, x, y, z, true);       // X/Y/Z + timestamp, 21 bytes
 ```
 
-A true send result means accepted into the fixed 21-byte buffer. Call `flush()`
-cyclically to complete a short write before submitting another point. Timestamp
-use in the C++ API still requires `setMillisecondCallback` and `setStartTime`.
+`KYMO_OK` means accepted into the fixed 21-byte buffer. Call `flush()`
+cyclically until it returns `KYMO_OK` before submitting another point. Timestamps
+in the C++ API require `setClock` and optionally `setStartTime`.
 Async transports must report busy until they release the transmitted buffer.
 
 ## Throughput
@@ -251,9 +251,9 @@ format. New embedded firmware should emit binary v6.
 
 - Python codec: `KymoStudio/python/Receiver/binary_protocol.py`
 - Backend parser: `KymoStudio/python/Backend/backend.py::_parse_data_point`
-- Embedded codec: `src/kymo_protocol.h/.cpp`
-- Embedded cyclic runtime: `src/kymo_runtime.h/.cpp`
-- Optional C++ sender: `src/kymo.h/.cpp`
+- Embedded codec: `src/telemetry/kymo_protocol.h/.cpp`
+- Embedded cyclic runtime: `src/telemetry/kymo_runtime.h/.cpp`
+- Optional C++ sender: `src/telemetry/kymo_sender.h/.cpp`
 - Embedded golden-vector test: `test/protocol_golden_test.cpp`
 - Desktop golden-vector tests: `KymoStudio/tests/test_binary_protocol.py`
 

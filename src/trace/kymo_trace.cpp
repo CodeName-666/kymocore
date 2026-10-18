@@ -1,29 +1,51 @@
-/* SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial */
+/* SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+ * Copyright (c) 2026 Christof Seidel */
 /** @file kymo_trace.cpp @brief Bounded per-core recording implementation. */
 #include "kymo_trace.h"
+
 #if KYMO_EFFECTIVE_TRACE
 #include <string.h>
+
 namespace {
+
+/*******************************************************************************
+ * recorderLock
+ ******************************************************************************/
 void recorderLock(KymoTraceRecorder *recorder)
 {
     if (recorder->config.critical_enter != NULL) {
         recorder->config.critical_enter(recorder->config.user);
     }
 }
+
+/*******************************************************************************
+ * recorderUnlock
+ ******************************************************************************/
 void recorderUnlock(KymoTraceRecorder *recorder)
 {
     if (recorder->config.critical_exit != NULL) {
         recorder->config.critical_exit(recorder->config.user);
     }
 }
+
+/*******************************************************************************
+ * activeCore
+ ******************************************************************************/
 uint8_t activeCore(KymoTraceRecorder *recorder)
 {
-    uint8_t result = recorder->config.core_id(recorder->config.user);
+    uint8_t result = 0u;
+    if (recorder->config.core_id != NULL) {
+        result = recorder->config.core_id(recorder->config.user);
+    }
     if (result >= KYMO_TRACE_CORE_COUNT) {
         result = 0xffu;
     }
     return result;
 }
+
+/*******************************************************************************
+ * findContext
+ ******************************************************************************/
 KymoTraceContextState *findContext(KymoTraceRecorder *recorder, uint32_t id,
                                    uint8_t create)
 {
@@ -48,6 +70,10 @@ KymoTraceContextState *findContext(KymoTraceRecorder *recorder, uint32_t id,
     }
     return found;
 }
+
+/*******************************************************************************
+ * appendEvent
+ ******************************************************************************/
 void appendEvent(KymoTraceRecorder *recorder, uint8_t core,
                  KymoTraceEvent *event)
 {
@@ -67,12 +93,20 @@ void appendEvent(KymoTraceRecorder *recorder, uint8_t core,
         }
     }
 }
+
+/*******************************************************************************
+ * eventDepth
+ ******************************************************************************/
 uint16_t eventDepth(uint32_t logicalDepth)
 {
     uint16_t result = (logicalDepth > UINT16_MAX) ? UINT16_MAX :
         (uint16_t)logicalDepth;
     return result;
 }
+
+/*******************************************************************************
+ * makeEvent
+ ******************************************************************************/
 void makeEvent(KymoTraceRecorder *recorder, uint32_t context, uint16_t symbol,
                uint8_t type, uint16_t depth, uint16_t flags, uint32_t arg,
                KymoTraceEvent *event, uint8_t core)
@@ -98,6 +132,10 @@ void makeEvent(KymoTraceRecorder *recorder, uint32_t context, uint16_t symbol,
             KYMO_TRACE_FLAG_CONTEXT_INVALID);
     }
 }
+
+/*******************************************************************************
+ * normalizeCore
+ ******************************************************************************/
 uint8_t normalizeCore(KymoTraceRecorder *recorder, uint16_t *flags)
 {
     uint8_t core = activeCore(recorder);
@@ -108,24 +146,30 @@ uint8_t normalizeCore(KymoTraceRecorder *recorder, uint16_t *flags)
     }
     return core;
 }
-}
-/** ************************ KymoTrace_Init ************************ */
-uint8_t KymoTrace_Init(KymoTraceRecorder *recorder,
-                       const KymoTraceConfig *config)
+
+} // namespace
+
+/*******************************************************************************
+ * KymoTrace_Init
+ ******************************************************************************/
+KymoStatus KymoTrace_Init(KymoTraceRecorder *recorder,
+                          const KymoTraceConfig *config)
 {
-    uint8_t result = 0u;
+    KymoStatus result = KYMO_BAD_CONFIG;
     if ((recorder != NULL) && (config != NULL) &&
-        (config->clock_ticks != NULL) && (config->core_id != NULL) &&
-        (config->current_context != NULL) &&
+        (config->clock_ticks != NULL) &&
         ((config->critical_enter == NULL) == (config->critical_exit == NULL))) {
         memset(recorder, 0, sizeof(*recorder));
         recorder->config = *config;
         recorder->initialized = 1u;
-        result = 1u;
+        result = KYMO_OK;
     }
     return result;
 }
-/** ************************ KymoTrace_Enter ************************ */
+
+/*******************************************************************************
+ * KymoTrace_Enter
+ ******************************************************************************/
 void KymoTrace_Enter(KymoTraceRecorder *recorder, uint32_t context,
                      uint16_t symbol)
 {
@@ -167,7 +211,10 @@ void KymoTrace_Enter(KymoTraceRecorder *recorder, uint32_t context,
         recorderUnlock(recorder);
     }
 }
-/** ************************ KymoTrace_Exit ************************ */
+
+/*******************************************************************************
+ * KymoTrace_Exit
+ ******************************************************************************/
 void KymoTrace_Exit(KymoTraceRecorder *recorder, uint32_t context,
                     uint16_t symbol)
 {
@@ -202,7 +249,10 @@ void KymoTrace_Exit(KymoTraceRecorder *recorder, uint32_t context,
         recorderUnlock(recorder);
     }
 }
-/** ************************ KymoTrace_Mark ************************ */
+
+/*******************************************************************************
+ * KymoTrace_Mark
+ ******************************************************************************/
 void KymoTrace_Mark(KymoTraceRecorder *recorder, uint32_t context,
                     uint16_t marker, uint32_t value)
 {
@@ -221,8 +271,11 @@ void KymoTrace_Mark(KymoTraceRecorder *recorder, uint32_t context,
         recorderUnlock(recorder);
     }
 }
+
 #if KYMO_EFFECTIVE_TRACE_ISR
-/** ************************ KymoTrace_IsrEnter ************************ */
+/*******************************************************************************
+ * KymoTrace_IsrEnter
+ ******************************************************************************/
 void KymoTrace_IsrEnter(KymoTraceRecorder *recorder, uint32_t irqContext)
 {
     if ((recorder != NULL) && (recorder->initialized != 0u)) {
@@ -230,9 +283,12 @@ void KymoTrace_IsrEnter(KymoTraceRecorder *recorder, uint32_t irqContext)
         uint16_t flags = KYMO_TRACE_FLAG_ARG_VALID;
         uint8_t core = normalizeCore(recorder, &flags);
         uint16_t depth = recorder->isr_depth[core];
-        uint32_t interrupted = (depth > 0u) ?
-            recorder->irq_contexts[core][depth - 1u] :
-            recorder->config.current_context(recorder->config.user);
+        uint32_t interrupted = 0u;
+        if (depth > 0u) {
+            interrupted = recorder->irq_contexts[core][depth - 1u];
+        } else if (recorder->config.current_context != NULL) {
+            interrupted = recorder->config.current_context(recorder->config.user);
+        }
         if (depth < KYMO_TRACE_MAX_ISR_DEPTH) {
             recorder->interrupted_contexts[core][depth] = interrupted;
             recorder->irq_contexts[core][depth] = irqContext;
@@ -248,7 +304,10 @@ void KymoTrace_IsrEnter(KymoTraceRecorder *recorder, uint32_t irqContext)
         recorderUnlock(recorder);
     }
 }
-/** ************************ KymoTrace_IsrExit ************************ */
+
+/*******************************************************************************
+ * KymoTrace_IsrExit
+ ******************************************************************************/
 void KymoTrace_IsrExit(KymoTraceRecorder *recorder, uint32_t irqContext)
 {
     if ((recorder != NULL) && (recorder->initialized != 0u)) {
@@ -274,7 +333,9 @@ void KymoTrace_IsrExit(KymoTraceRecorder *recorder, uint32_t irqContext)
 }
 #endif
 #if KYMO_EFFECTIVE_TRACE_SCHEDULER
-/** ************************ KymoTrace_Scheduler ************************ */
+/*******************************************************************************
+ * KymoTrace_Scheduler
+ ******************************************************************************/
 void KymoTrace_Scheduler(KymoTraceRecorder *recorder, uint32_t context,
                          uint32_t task)
 {
@@ -289,7 +350,10 @@ void KymoTrace_Scheduler(KymoTraceRecorder *recorder, uint32_t context,
         recorderUnlock(recorder);
     }
 }
-/** ************************ KymoTrace_TaskCreate ************************ */
+
+/*******************************************************************************
+ * KymoTrace_TaskCreate
+ ******************************************************************************/
 void KymoTrace_TaskCreate(KymoTraceRecorder *recorder, uint32_t context,
                           uint32_t generation)
 {
@@ -304,7 +368,10 @@ void KymoTrace_TaskCreate(KymoTraceRecorder *recorder, uint32_t context,
         recorderUnlock(recorder);
     }
 }
-/** ************************ KymoTrace_TaskEnd ************************ */
+
+/*******************************************************************************
+ * KymoTrace_TaskEnd
+ ******************************************************************************/
 void KymoTrace_TaskEnd(KymoTraceRecorder *recorder, uint32_t context,
                        uint32_t generation)
 {
@@ -319,7 +386,10 @@ void KymoTrace_TaskEnd(KymoTraceRecorder *recorder, uint32_t context,
         recorderUnlock(recorder);
     }
 }
-/** ************************ KymoTrace_CoreState ************************ */
+
+/*******************************************************************************
+ * KymoTrace_CoreState
+ ******************************************************************************/
 void KymoTrace_CoreState(KymoTraceRecorder *recorder, uint32_t context,
                          uint8_t state, uint8_t recovery)
 {
@@ -340,7 +410,9 @@ void KymoTrace_CoreState(KymoTraceRecorder *recorder, uint32_t context,
 }
 #endif
 #if KYMO_EFFECTIVE_TRACE_FLOW
-/** ************************ KymoTrace_FlowSend ************************ */
+/*******************************************************************************
+ * KymoTrace_FlowSend
+ ******************************************************************************/
 void KymoTrace_FlowSend(KymoTraceRecorder *recorder, uint32_t context,
                         uint16_t symbol, uint32_t correlation)
 {
@@ -355,7 +427,10 @@ void KymoTrace_FlowSend(KymoTraceRecorder *recorder, uint32_t context,
         recorderUnlock(recorder);
     }
 }
-/** ************************ KymoTrace_FlowReceive ************************ */
+
+/*******************************************************************************
+ * KymoTrace_FlowReceive
+ ******************************************************************************/
 void KymoTrace_FlowReceive(KymoTraceRecorder *recorder, uint32_t context,
                            uint16_t symbol, uint32_t correlation)
 {
@@ -371,12 +446,16 @@ void KymoTrace_FlowReceive(KymoTraceRecorder *recorder, uint32_t context,
     }
 }
 #endif
-/** ************************ KymoTrace_ContextReset ************************ */
-uint8_t KymoTrace_ContextReset(KymoTraceRecorder *recorder, uint32_t context,
-                               uint32_t generation)
+
+/*******************************************************************************
+ * KymoTrace_ContextReset
+ ******************************************************************************/
+KymoStatus KymoTrace_ContextReset(KymoTraceRecorder *recorder, uint32_t context,
+                                  uint32_t generation)
 {
-    uint8_t result = 0u;
+    KymoStatus result = KYMO_BAD_CONFIG;
     if ((recorder != NULL) && (recorder->initialized != 0u)) {
+        result = KYMO_REJECTED;
         recorderLock(recorder);
         uint16_t flags = KYMO_TRACE_FLAG_RECOVERY;
         uint8_t core = normalizeCore(recorder, &flags);
@@ -388,20 +467,25 @@ uint8_t KymoTrace_ContextReset(KymoTraceRecorder *recorder, uint32_t context,
             makeEvent(recorder, context, 0u, KYMO_TRACE_EVENT_CONTEXT_RESET,
                       0u, flags, generation, &event, core);
             appendEvent(recorder, core, &event);
-            result = 1u;
+            result = KYMO_OK;
         }
         recorderUnlock(recorder);
     }
     return result;
 }
-/** ************************ KymoTrace_Pop ************************ */
-uint8_t KymoTrace_Pop(KymoTraceRecorder *recorder, KymoTraceEvent *event)
+
+/*******************************************************************************
+ * KymoTrace_Pop
+ ******************************************************************************/
+KymoStatus KymoTrace_Pop(KymoTraceRecorder *recorder, KymoTraceEvent *event)
 {
-    uint8_t result = 0u;
+    KymoStatus result = KYMO_BAD_CONFIG;
     if ((recorder != NULL) && (event != NULL) &&
         (recorder->initialized != 0u)) {
+        result = KYMO_IDLE;
         recorderLock(recorder);
-        for (uint8_t offset = 0u; offset < KYMO_TRACE_CORE_COUNT; ++offset) {
+        for (uint8_t offset = 0u; (offset < KYMO_TRACE_CORE_COUNT) &&
+             (result == KYMO_IDLE); ++offset) {
             uint8_t core = (uint8_t)((recorder->pop_core + offset) %
                 KYMO_TRACE_CORE_COUNT);
             if (recorder->counts[core] > 0u) {
@@ -412,15 +496,17 @@ uint8_t KymoTrace_Pop(KymoTraceRecorder *recorder, KymoTraceEvent *event)
                 recorder->settled_through[core] = event->record_seq + 1u;
                 recorder->pop_core = (uint8_t)((core + 1u) %
                     KYMO_TRACE_CORE_COUNT);
-                result = 1u;
-                break;
+                result = KYMO_OK;
             }
         }
         recorderUnlock(recorder);
     }
     return result;
 }
-/** ************************ KymoTrace_DropCount ************************ */
+
+/*******************************************************************************
+ * KymoTrace_DropCount
+ ******************************************************************************/
 uint32_t KymoTrace_DropCount(KymoTraceRecorder *recorder, uint8_t core)
 {
     uint32_t result = 0u;
@@ -432,4 +518,4 @@ uint32_t KymoTrace_DropCount(KymoTraceRecorder *recorder, uint8_t core)
     }
     return result;
 }
-#endif
+#endif /* KYMO_EFFECTIVE_TRACE */

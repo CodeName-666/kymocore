@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "kymo.h"
+#include "KymoCore.h"
 
 class CaptureStream : public KymoStream
 {
@@ -58,10 +58,10 @@ int main()
     point.z = 9.0f;
     point.timestamp_ms = 1234;
 
-    size_t length = kymo_encode_data(&point, frame, sizeof(frame));
+    size_t length = KymoProtocol_Encode(&point, frame, sizeof(frame));
     assert(length == sizeof(full_golden));
     assert(memcmp(frame, full_golden, sizeof(full_golden)) == 0);
-    assert(kymo_decode_data(frame, length, &decoded) == 1);
+    assert(KymoProtocol_Decode(frame, length, &decoded) == KYMO_OK);
     assert(decoded.id == point.id);
     assert(decoded.x == point.x);
     assert(decoded.value == point.value);
@@ -73,23 +73,24 @@ int main()
     micro.flags = KYMO_FLAG_TIMESTAMP | KYMO_FLAG_TIMESTAMP_US;
     micro.value = -2.5f;
     micro.timestamp_ms = 1234567u;
-    length = kymo_encode_data(&micro, frame, sizeof(frame));
+    length = KymoProtocol_Encode(&micro, frame, sizeof(frame));
     assert(length == sizeof(micro_golden));
     assert(memcmp(frame, micro_golden, sizeof(micro_golden)) == 0);
     decoded = {};
-    assert(kymo_decode_data(frame, length, &decoded) == 1);
+    assert(KymoProtocol_Decode(frame, length, &decoded) == KYMO_OK);
     assert(decoded.flags == micro.flags);
     assert(decoded.timestamp_ms == micro.timestamp_ms);
 
     /* The unit bit without a timestamp field is rejected on both sides. */
     micro.flags = KYMO_FLAG_TIMESTAMP_US;
-    assert(kymo_encode_data(&micro, frame, sizeof(frame)) == 0u);
-    assert(kymo_frame_length(KYMO_DESCRIPTOR_DATA | KYMO_FLAG_TIMESTAMP_US) == 0u);
-    assert(kymo_frame_length(0x60u) == 0u);
+    assert(KymoProtocol_Encode(&micro, frame, sizeof(frame)) == 0u);
+    assert(KymoProtocol_FrameLength(KYMO_DESCRIPTOR_DATA | KYMO_FLAG_TIMESTAMP_US) == 0u);
+    assert(KymoProtocol_FrameLength(0x60u) == 0u);
 
     CaptureStream stream;
-    Kymo kymo(stream);
-    kymo.send(7, 1.0f);
+    KymoSender sender(stream);
+    assert(sender.send(7, 1.0f) == KYMO_OK);
+    assert(sender.flush() == KYMO_OK);
     assert(stream.writes == 1);
     assert(stream.length == sizeof(minimal_golden));
     assert(memcmp(stream.bytes, minimal_golden, sizeof(minimal_golden)) == 0);

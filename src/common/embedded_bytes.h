@@ -3,7 +3,7 @@
 /**
  * @brief Explicit little-endian integer and binary32 conversion.
  *
- * @details Raw helpers require valid four-byte spans and do not perform bounds/null checks.
+ * @details Raw helpers require valid two-, four- or eight-byte spans and do not perform bounds/null checks.
  * Unaligned byte addresses are supported. Float conversion uses memcpy to avoid
  * strict-aliasing violations; the protocol layer validates finite measurements.
  * @file embedded_bytes.h
@@ -40,6 +40,22 @@ typedef char emb_requires_32_bit_float[(sizeof(float) == 4) ? 1 : -1];
 #endif
 
 /**
+ * @brief Write one uint16 in little-endian order.
+ *
+ * @details Writes exactly two bytes, independent of host endianness; no alignment is required.
+ * @param[out] output Non-null writable span of at least two bytes.
+ * @param[in] value Unsigned 16-bit value to serialize.
+ * @pre The supplied span is valid for the full two-byte access.
+ * @par Usage
+ * emb_write_u16_le(raw, 0x1234u) writes bytes 34 12 into a two-byte array.
+ */
+static inline void emb_write_u16_le(uint8_t *output, uint16_t value)
+{
+    output[0] = (uint8_t)(value & 0xffu);
+    output[1] = (uint8_t)(((uint32_t)value >> 8u) & 0xffu);
+}
+
+/**
  * @brief Write one uint32 in little-endian order.
  *
  * @details Writes exactly four bytes, independent of host endianness; no alignment is required.
@@ -55,6 +71,22 @@ static inline void emb_write_u32_le(uint8_t *output, uint32_t value)
     output[1] = (uint8_t)((value >> 8u) & UINT32_C(0xff));
     output[2] = (uint8_t)((value >> 16u) & UINT32_C(0xff));
     output[3] = (uint8_t)((value >> 24u) & UINT32_C(0xff));
+}
+
+/**
+ * @brief Write one uint64 in little-endian order.
+ *
+ * @details Writes exactly eight bytes, independent of host endianness; no alignment is required.
+ * @param[out] output Non-null writable span of at least eight bytes.
+ * @param[in] value Unsigned 64-bit value to serialize.
+ * @pre The supplied span is valid for the full eight-byte access.
+ * @par Usage
+ * emb_write_u64_le(raw, session_id) writes the least significant byte first.
+ */
+static inline void emb_write_u64_le(uint8_t *output, uint64_t value)
+{
+    emb_write_u32_le(output, (uint32_t)(value & UINT64_C(0xffffffff)));
+    emb_write_u32_le(output + 4u, (uint32_t)(value >> 32u));
 }
 
 /**

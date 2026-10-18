@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 6.4.0" src="https://img.shields.io/badge/version-6.4.0-7C5CFF">
+  <img alt="Version 7.0.0" src="https://img.shields.io/badge/version-7.0.0-7C5CFF">
   <img alt="Lizenz GPLv3 oder kommerziell" src="https://img.shields.io/badge/Lizenz-GPLv3%20%7C%20kommerziell-15123A">
   <img alt="C++11 mit C-API" src="https://img.shields.io/badge/C%2B%2B11-C--API-A78BFA">
   <img alt="Plattformen" src="https://img.shields.io/badge/Arduino%20%C2%B7%20ESP32%20%C2%B7%20STM32-PlatformIO-FDE047">
@@ -33,7 +33,7 @@ Konfigurationsstände lassen sich ohne Python-Generator und ohne Qt kompilieren.
 Compilerdefinitionen haben Vorrang vor dem Projektheader und den Bibliotheksvorgaben.
 `KYMO_ENABLED=0` schaltet die Instrumentierung aus; anwendungseigene Telemetrieressourcen
 müssen mit den effektiven Feature-Makros geschützt werden. Die Fassade liegt in
-`kymo_instrumentation.h`. Ungeschützte direkte API-Aufrufe werden im Off-Build
+`KymoCore.h` (or `trace/kymo_instrumentation.h`). Ungeschützte direkte API-Aufrufe werden im Off-Build
 bewusst als Übersetzungsfehler erkannt.
 
 Wer Sensoren auswertet, einen Regler einstellt oder einen Motor ansteuert, will
@@ -93,7 +93,7 @@ In der `platformio.ini` deines Projekts eintragen:
 
 ```ini
 lib_deps =
-    codename666/KymoCore @ 6.4.0
+    codename666/KymoCore @ 7.0.0
 ```
 
 ### Vollständiges Beispiel für Arduino und ESP32
@@ -111,8 +111,6 @@ static KymoContext context = {};
 static KymoStatus lastStatus = KYMO_BAD_CONFIG;
 /* period_ms, id, flags: channel 0, every 20 ms, scalar value only. */
 static const KymoChannel channels[] = {{20U, 0U, 0U}};
-static uint32_t lastSampleMs[KYMO_COUNT_OF(channels)] = {};
-static KymoConfig config = {};
 
 /*******************************************************************************
  * readClockMs
@@ -161,10 +159,10 @@ static uint8_t writeBytes(void *user, const uint8_t *bytes, uint8_t length)
  ******************************************************************************/
 void setup()
 {
+    KymoConfig config = {};   /* copied by Kymo_Init, may be local */
     Serial.begin(115200);
     config.channels = channels;                     /* what */
     config.channel_count = KYMO_COUNT_OF(channels);
-    config.last_sample_ms = lastSampleMs;
     config.clock_ms = readClockMs;                  /* when */
     config.sample = readSample;                     /* which values */
     config.write = writeBytes;                      /* where to */

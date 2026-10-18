@@ -28,13 +28,7 @@ static const KymoChannel channels[] = {
     {100U, 2U, KYMO_ALLOWED_FLAGS},                              /* XYZ */
 };
 
-/** @brief Scheduling state: one entry per channel, owned by the sketch. */
-static uint32_t lastSampleMs[KYMO_COUNT_OF(channels)];
-
-/** @brief Runtime configuration, filled by name in setup(). */
-static KymoConfig config = {};
-
-/** @brief Runtime state including the single transmit buffer. */
+/** @brief Runtime state: schedule and the single transmit buffer. */
 static KymoContext context = {};
 
 /** @brief 2. WHEN: Arduino millisecond counter.
@@ -106,10 +100,10 @@ static uint8_t writeBytes(void *user, const uint8_t *bytes, uint8_t length)
  ******************************************************************************/
 void setup()
 {
+    KymoConfig config = {};   /* copied by Kymo_Init; may be local */
     Serial.begin(115200);
     config.channels = channels;
     config.channel_count = KYMO_COUNT_OF(channels);
-    config.last_sample_ms = lastSampleMs;
     config.clock_ms = readClockMs;
     config.sample = readSample;
     config.write = writeBytes;

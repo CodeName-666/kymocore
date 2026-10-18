@@ -32,7 +32,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix="kymo-compile-out-") as temp_name:
         temp = Path(temp_name)
         c_off = temp / "off.c"
-        c_off.write_text(r'''#include "kymo_instrumentation.h"
+        c_off.write_text(r'''#include "trace/kymo_instrumentation.h"
 int main(void) {
     int side_effect = 0;
     if (1) KYMO_TRACE_ENTER(undefined_recorder, ++side_effect, missing_symbol);
@@ -62,7 +62,7 @@ int main(void) {
                      "-DKYMO_ENABLE_TRACE_ISR=1", "-DKYMO_ENABLE_TRACE_SCHEDULER=1",
                      "-DKYMO_ENABLE_TRACE_FLOW=1"]
         objects = []
-        for source_path in sorted((ROOT / "src").glob("*.cpp")):
+        for source_path in sorted((ROOT / "src").rglob("*.cpp")):
             obj = temp / (source_path.stem + ".o")
             run([args.cxx, "-std=c++11", "-O0", *off_flags, "-Isrc", "-c",
                  str(source_path), "-o", str(obj)])
@@ -79,7 +79,7 @@ int main(void) {
             encoding="utf-8",
         )
         config_probe = temp / "config_probe.c"
-        config_probe.write_text(r'''#include "kymo_features.h"
+        config_probe.write_text(r'''#include "kymo_config.h"
 #if KYMO_ENABLED != 1 || KYMO_ENABLE_RUNTIME != 1 || KYMO_EFFECTIVE_RUNTIME != 1
 #error "compiler definitions must override project configuration"
 #endif
@@ -92,15 +92,15 @@ int main(void) { return 0; }
 
         direct = temp / "direct.c"
         direct.write_text(
-            '#include "kymo_protocol.h"\n'
-            'int main(void) { return (int)kymo_encode_data(0, 0, 0); }\n',
+            '#include "telemetry/kymo_protocol.h"\n'
+            'int main(void) { return (int)KymoProtocol_Encode(0, 0, 0); }\n',
             encoding="utf-8",
         )
         run([args.cc, "-std=c99", "-Werror=implicit-function-declaration",
              "-DKYMO_ENABLED=0", "-Isrc", str(direct), "-o", str(temp / "direct")], 1)
         direct_runtime = temp / "direct-runtime.c"
         direct_runtime.write_text(
-            '#include "kymo_runtime.h"\n'
+            '#include "telemetry/kymo_runtime.h"\n'
             'int main(void) { KymoContext c = {0}; return (int)Kymo_Main(&c); }\n',
             encoding="utf-8",
         )
@@ -108,7 +108,7 @@ int main(void) { return 0; }
              "-DKYMO_ENABLE_RUNTIME=1", "-Isrc", str(direct_runtime), "-o", str(temp / "direct-runtime")], 1)
         direct_cpp = temp / "direct-cpp.cpp"
         direct_cpp.write_text(
-            '#include "kymo.h"\nint main() { Kymo sender; return sender.flush() ? 0 : 1; }\n',
+            '#include "telemetry/kymo_sender.h"\nint main() { KymoSender sender; return (int)sender.flush(); }\n',
             encoding="utf-8",
         )
         run([args.cxx, "-std=c++11", "-DKYMO_ENABLED=0", "-DKYMO_ENABLE_CPP=1",
@@ -116,9 +116,11 @@ int main(void) { return 0; }
 
         fake = temp / "fake"
         fake.mkdir()
-        for header_name in ("kymo_instrumentation.h", "kymo_features.h", "kymo_build_config.h", "kymo_version.h"):
-            shutil.copy2(ROOT / "src" / header_name, fake / header_name)
-        (fake / "kymo_trace.h").write_text(r'''#ifndef TEST_KYMO_TRACE_H
+        (fake / "trace").mkdir()
+        shutil.copy2(ROOT / "src" / "kymo_config.h", fake / "kymo_config.h")
+        shutil.copy2(ROOT / "src" / "trace" / "kymo_instrumentation.h",
+                     fake / "trace" / "kymo_instrumentation.h")
+        (fake / "trace" / "kymo_trace.h").write_text(r'''#ifndef TEST_KYMO_TRACE_H
 #define TEST_KYMO_TRACE_H
 static int trace_calls;
 static int trace_scope_constructed;
@@ -135,7 +137,7 @@ class KymoTraceScope { public: KymoTraceScope(int *, int, int) { ++trace_scope_c
 #endif
 ''', encoding="utf-8")
         active = temp / "active.cpp"
-        active.write_text(r'''#include "kymo_instrumentation.h"
+        active.write_text(r'''#include "trace/kymo_instrumentation.h"
 static int eval_counts[27];
 static int eval(int slot) { ++eval_counts[slot]; return slot; }
 static int *eval_recorder(int slot, int *recorder) { ++eval_counts[slot]; return recorder; }
@@ -165,7 +167,7 @@ int main() {
             proc = subprocess.run(
                 [args.cc, "-std=c99", "-DKYMO_ENABLED=" + bad, "-Isrc", "-x", "c",
                  "-c", "-o", str(temp / "bad.o"), "-"],
-                input='#include "kymo_features.h"\n', cwd=ROOT, text=True, capture_output=True,
+                input='#include "kymo_config.h"\n', cwd=ROOT, text=True, capture_output=True,
             )
             if proc.returncode == 0:
                 raise AssertionError(f"invalid KYMO_ENABLED token accepted: {bad!r}")
@@ -178,7 +180,7 @@ int main() {
             proc = subprocess.run(
                 [args.cc, "-std=c99", "-DKYMO_ENABLED=0", f"-D{flag}=2", "-Isrc", "-x", "c",
                  "-c", "-o", str(temp / "bad-flag.o"), "-"],
-                input='#include "kymo_features.h"\n', cwd=ROOT, text=True, capture_output=True,
+                input='#include "kymo_config.h"\n', cwd=ROOT, text=True, capture_output=True,
             )
             if proc.returncode == 0:
                 raise AssertionError(f"invalid boolean setting accepted while globally off: {flag}")
@@ -186,7 +188,7 @@ int main() {
         valid = subprocess.run(
             [args.cc, "-std=c99", "-DKYMO_ENABLED=0", "-DKYMO_ENABLE_RUNTIME=1", "-Isrc",
              "-x", "c", "-c", "-o", str(temp / "valid.o"), "-"],
-            input='#include "kymo_features.h"\n', cwd=ROOT, text=True, capture_output=True,
+            input='#include "kymo_config.h"\n', cwd=ROOT, text=True, capture_output=True,
         )
         if valid.returncode != 0:
             raise AssertionError(f"valid off settings were rejected:\n{valid.stdout}{valid.stderr}")
@@ -199,12 +201,41 @@ int main() {
             proc = subprocess.run(
                 [args.cc, "-std=c99", *bad_flags, "-Isrc", "-x", "c", "-c", "-o",
                  str(temp / "dependency.o")],
-                input='#include "kymo_features.h"\n', cwd=ROOT, text=True, capture_output=True,
+                input='#include "kymo_config.h"\n', cwd=ROOT, text=True, capture_output=True,
             )
             if proc.returncode == 0:
                 raise AssertionError(f"invalid active feature dependency accepted: {bad_flags}")
 
-    print("compile-out configuration and instrumentation facade: PASS")
+        def preprocess(flags, probe):
+            return subprocess.run(
+                [args.cc, "-std=c99", *flags, "-Isrc", "-x", "c", "-c", "-o",
+                 str(temp / "probe.o"), "-"],
+                input='#include "kymo_config.h"\n' + probe, cwd=ROOT, text=True,
+                capture_output=True,
+            )
+
+        for bad_profile in ("3", "UNKNOWN_PROFILE", "-1"):
+            if preprocess(["-DKYMO_PROFILE=" + bad_profile], "").returncode == 0:
+                raise AssertionError(f"invalid KYMO_PROFILE accepted: {bad_profile!r}")
+        profile_checks = (
+            ([], "#if KYMO_ENABLE_X || KYMO_ENABLE_TRACE\n#error minimal\n#endif\n"),
+            (["-DKYMO_PROFILE=KYMO_PROFILE_XYZ"],
+             "#if !KYMO_ENABLE_X || !KYMO_ENABLE_Z || !KYMO_ENABLE_TIMESTAMP || KYMO_ENABLE_TRACE\n#error xyz\n#endif\n"),
+            (["-DKYMO_PROFILE=KYMO_PROFILE_TRACE"],
+             "#if !KYMO_EFFECTIVE_TRACE_SCHEDULER || !KYMO_EFFECTIVE_TRACE_FLOW || !KYMO_ENABLE_X\n#error trace\n#endif\n"),
+            (["-DKYMO_PROFILE=KYMO_PROFILE_XYZ", "-DKYMO_ENABLE_Z=0"],
+             "#if KYMO_ENABLE_Z || !KYMO_ENABLE_X\n#error override\n#endif\n"),
+            (["-DKYMO_PROFILE=1"], "#if !KYMO_ENABLE_X\n#error numeric\n#endif\n"),
+        )
+        for flags, probe in profile_checks:
+            proc = preprocess(flags, probe)
+            if proc.returncode != 0:
+                raise AssertionError(f"profile defaults wrong for {flags}:\n{proc.stderr}")
+        for bad_channels in ("0", "257"):
+            if preprocess(["-DKYMO_MAX_CHANNELS=" + bad_channels], "").returncode == 0:
+                raise AssertionError(f"invalid KYMO_MAX_CHANNELS accepted: {bad_channels}")
+
+    print("compile-out configuration, profiles and instrumentation facade: PASS")
 
 
 if __name__ == "__main__":

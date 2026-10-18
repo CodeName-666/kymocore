@@ -50,7 +50,7 @@ class CppSenderGenerationTests(unittest.TestCase):
         )
         source = root / "main.cpp"
         source.write_text(r'''#include <kymo_generated_config.h>
-#include <kymo_stream.h>
+#include <KymoCore.h>
 class TestStream : public KymoStream {
 public:
     size_t write(const uint8_t *, size_t length) override { bytes += length; return length; }
@@ -67,11 +67,11 @@ int main() {
 #if KYMO_EFFECTIVE_TIMESTAMP
     if (clock_calls != 1U) return 2;
     kymo_generated_sender.setTimestampEnabled(true);
-    if (!kymo_generated_sender.send(3U, 1.0f, true)) return 3;
+    if (kymo_generated_sender.send(3U, 1.0f, true) != KYMO_OK) return 3;
     if (clock_calls != 2U || test_stream.bytes != 13U) return 4;
 #else
     if (clock_calls != 0U) return 5;
-    if (!kymo_generated_sender.send(3U, 1.0f)) return 6;
+    if (kymo_generated_sender.send(3U, 1.0f) != KYMO_OK) return 6;
     if (test_stream.bytes != 9U) return 7;
 #endif
     return 0;
@@ -83,7 +83,7 @@ int main() {
             '-DKYMO_USER_CONFIG_HEADER="kymo_user_config.h"',
         ]
         objects = []
-        for source_path in sorted((CORE / "src").glob("*.cpp")) + [snapshot / "kymo_generated_config.cpp"]:
+        for source_path in sorted((CORE / "src").rglob("*.cpp")) + [snapshot / "kymo_generated_config.cpp"]:
             obj = root / (source_path.stem + ".o")
             self.run_command(self.cxx, *flags, "-c", str(source_path), "-o", str(obj))
             objects.append(str(obj))
@@ -122,7 +122,7 @@ int main() {
             flags = ["-std=c++11", "-O0", "-DKYMO_ENABLED=0", "-I" + str(CORE / "src"),
                      "-I" + str(snapshot), '-DKYMO_USER_CONFIG_HEADER="kymo_user_config.h"']
             objects = []
-            for source_path in sorted((CORE / "src").glob("*.cpp")) + [snapshot / "kymo_generated_config.cpp"]:
+            for source_path in sorted((CORE / "src").rglob("*.cpp")) + [snapshot / "kymo_generated_config.cpp"]:
                 obj = root / (source_path.stem + ".o")
                 self.run_command(self.cxx, *flags, "-c", str(source_path), "-o", str(obj))
                 objects.append(str(obj))

@@ -2,53 +2,48 @@
  * Copyright (c) 2026 Christof Seidel */
 /**
  * @file KymoCore.h
- * @brief Single entry header for the complete KymoCore library.
+ * @brief The one header applications include.
  *
- * @details Include this one header instead of choosing between the individual
- * module headers. It always provides the build configuration, the wire
- * protocol and the cyclic Init/Main telemetry runtime. Optional modules are
- * added automatically when their build switch in kymo_build_config.h is
- * enabled:
+ * @details KymoCore is organized by task; this header pulls in every module that
+ * the build configuration enables:
  *
- * | Build switch            | Module added               | Header               |
- * |-------------------------|----------------------------|----------------------|
- * | (always)                | Telemetry runtime          | kymo_runtime.h       |
- * | (always)                | Wire protocol / codec      | kymo_protocol.h      |
- * | KYMO_ENABLE_CPP=1       | C++ push sender            | kymo.h               |
- * | (always, compile-out)   | Trace instrumentation      | kymo_instrumentation.h |
- * | KYMO_ENABLE_TRACE=1     | Trace recorder + transport | kymo_trace.h, kymo_transport_mux.h |
+ * | Folder / header                  | Module                         | Enabled by            |
+ * |----------------------------------|--------------------------------|-----------------------|
+ * | kymo_config.h                    | Version, switches, sizes       | always                |
+ * | kymo_types.h                     | KymoStatus, shared callbacks   | always                |
+ * | telemetry/kymo_protocol.h        | DATA frame codec               | always                |
+ * | telemetry/kymo_runtime.h         | Kymo_Init / Kymo_Main          | KYMO_ENABLE_RUNTIME=1 |
+ * | telemetry/kymo_sender.h          | KymoSender (C++ push API)      | KYMO_ENABLE_CPP=1     |
+ * | trace/kymo_instrumentation.h     | KYMO_TRACE_* macros            | always (compile-out)  |
+ * | trace/kymo_trace.h               | KymoTraceRecorder              | KYMO_ENABLE_TRACE=1   |
+ * | transport/kymo_mux.h             | KymoMux (trace + DATA link)    | KYMO_ENABLE_TRACE=1   |
  *
- * The individual headers remain supported; this header adds no declarations,
- * resources or behavior of its own and is safe in C and C++ translation units.
- * With KYMO_ENABLED=0 every module compiles out exactly as before.
+ * The library is platform-independent: no SDK, vendor or framework headers are
+ * included anywhere. Hardware access always lives in application callbacks.
+ * The header adds no declarations of its own and is valid in C and C++.
+ * With KYMO_ENABLED=0 every module compiles out.
  * @par Usage
  * @code{.cpp}
  * #include <KymoCore.h>
  * static KymoContext context;
- * // Fill a KymoConfig, then: Kymo_Init(&context, &config); Kymo_Main(&context);
+ * // Fill a KymoConfig by name, then: Kymo_Init(&context, &config); Kymo_Main(&context);
  * @endcode
  */
 #ifndef KYMO_CORE_H
-/**
- * @brief Include guard for KymoCore.h.
- *
- * @details Internal preprocessor symbol; do not define it in application code.
- * @par Usage
- * Include this header normally; the compiler manages this guard.
- */
 #define KYMO_CORE_H
 
-#include "kymo_features.h"
-#include "kymo_protocol.h"
-#include "kymo_runtime.h"
-#include "kymo_instrumentation.h"
+#include "kymo_config.h"
+#include "kymo_types.h"
+#include "telemetry/kymo_protocol.h"
+#include "telemetry/kymo_runtime.h"
+#include "trace/kymo_instrumentation.h"
 
 #if KYMO_EFFECTIVE_CPP && defined(__cplusplus)
-#include "kymo.h"
+#include "telemetry/kymo_sender.h"
 #endif
 
 #if KYMO_EFFECTIVE_TRACE
-#include "kymo_transport_mux.h"
+#include "transport/kymo_mux.h"
 #endif
 
 #endif /* KYMO_CORE_H */

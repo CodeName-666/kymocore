@@ -18,9 +18,9 @@ Applies to active first-party C/C++ code, including examples and native tests.
 - Preserve bounded execution, no heap in the core, and explicit transport
   buffer ownership. Do not claim safety-standard compliance from style checks.
 - Keep optional KymoCore features behind documented platform-independent
-  build switches in kymo_build_config.h, disabled by default. Load and validate
-  them through kymo_features.h; explicit compiler definitions may override
-  the internal settings. The default core
+  build switches in kymo_config.h, disabled by default (profiles only change
+  defaults). kymo_config.h loads and validates them; explicit compiler
+  definitions may override the internal settings. The default core
   is scalar C++11 encoding with a C-compatible API plus Init/Main scheduling and bounded transport handling.
   Compile disabled implementations out, reject unsupported requests explicitly,
   and test minimal and enabled builds. Examples opt into required features.
@@ -29,8 +29,9 @@ Applies to active first-party C/C++ code, including examples and native tests.
   C++ wrappers. No SDK headers, vendor types or target-dependent API branches.
   Hardware adapters live in application/example code and use callbacks or
   KymoStream. Target macros must not alter the library's public API/layout.
-- Run `python ../KymoProbe/tools/test_native.py --app ../KymoStudio` and affected PlatformIO
-  targets after changes. This runs the single-return structural check too.
+- Run `python test/native_test.py` (includes the single-return structural check),
+  `python ../KymoProbe/tools/test_native.py --app ../KymoStudio` when available, and
+  affected PlatformIO targets after changes.
 - Document active headers with Doxygen: brief, detailed contracts and Usage for
   macros, types, fields and functions; parameter directions and return semantics
   for callable interfaces. Keep the KymoProbe `Doxyfile` inputs current and run Doxygen there after
@@ -45,4 +46,4 @@ Applies to active first-party C/C++ code, including examples and native tests.
   KymoProbe and are selected through its central application main.
   KymoProbe retains its examples against its pinned official release; do not
   change library source or the consumer's library pin for demo development.
-- Run `python test/compile_out_test.py`, `python test/trace_core_test.py`, the configurator pytest suite, and `python tools/test_package.py` before a release.
+- Run `python test/native_test.py`, the configurator pytest suite, and `python tools/test_package.py` before a release.

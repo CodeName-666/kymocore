@@ -1,86 +1,55 @@
-/* SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial */
+/* SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+ * Copyright (c) 2026 Christof Seidel */
 
-/** @file kymo_trace.h @brief Fixed-storage recorder hooks and resource bounds.
- * @details Hook calls never allocate or transport. Concurrent callers require paired
- * critical callbacks that serialize all recorder accesses; these callbacks are not
- * declared ISR-safe by this portable library. Persistent recorder storage is caller-owned.
- * @par Usage Configure callbacks, call KymoTrace_Init, then use instrumentation macros.
+/** @file kymo_trace.h
+ * @brief Fixed-storage execution trace recorder.
+ * @details Hook calls never allocate or transport; the mux (kymo_mux.h) drains the
+ * recorder. Concurrent callers require paired critical callbacks that serialize all
+ * recorder accesses; these callbacks are not declared ISR-safe by this portable
+ * library. Resource sizes (KYMO_TRACE_*) are set in kymo_config.h. Persistent
+ * recorder storage is caller-owned. Available with KYMO_ENABLE_TRACE=1.
+ * @par Usage
+ * @code{.c}
+ * KymoTraceConfig config = {0};
+ * config.clock_ticks = read_cycle_counter;   // only required callback
+ * static KymoTraceRecorder recorder;
+ * if (KymoTrace_Init(&recorder, &config) == KYMO_OK) { KYMO_TRACE_ENTER(&recorder, 1u, 7u); }
+ * @endcode
  */
 #ifndef KYMO_TRACE_H
 #define KYMO_TRACE_H
 
-#include "kymo_features.h"
+#include "../kymo_types.h"
 
 #if KYMO_EFFECTIVE_TRACE
 #include "kymo_trace_protocol.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/** @brief Maximum event ring capacity per core (power of two, 16..4096). */
-#ifndef KYMO_TRACE_EVENTS_PER_CORE
-#define KYMO_TRACE_EVENTS_PER_CORE 64u
-#endif
-
-/** @brief Number of recorder cores supported (1 or 2). */
-#ifndef KYMO_TRACE_CORE_COUNT
-#define KYMO_TRACE_CORE_COUNT 1u
-#endif
-
-/** @brief Maximum allocated context records (1..256). */
-#ifndef KYMO_TRACE_MAX_CONTEXTS
-#define KYMO_TRACE_MAX_CONTEXTS 16u
-#endif
-
-/** @brief Maximum stored scope symbols per context (1..255). */
-#ifndef KYMO_TRACE_MAX_DEPTH
-#define KYMO_TRACE_MAX_DEPTH 32u
-#endif
-
-/** @brief Maximum nested ISR activations when ISR tracing is effective (1..16). */
-#ifndef KYMO_TRACE_MAX_ISR_DEPTH
-#define KYMO_TRACE_MAX_ISR_DEPTH 8u
-#endif
-
-#if (KYMO_TRACE_EVENTS_PER_CORE < 16u) || (KYMO_TRACE_EVENTS_PER_CORE > 4096u) || ((KYMO_TRACE_EVENTS_PER_CORE & (KYMO_TRACE_EVENTS_PER_CORE-1u)) != 0u)
-#error "KYMO_TRACE_EVENTS_PER_CORE must be a power of two from 16 through 4096"
-#endif
-
-#if (KYMO_TRACE_CORE_COUNT < 1u) || (KYMO_TRACE_CORE_COUNT > 2u)
-#error "KYMO_TRACE_CORE_COUNT must be 1 or 2"
-#endif
-
-#if (KYMO_TRACE_MAX_CONTEXTS < 1u) || (KYMO_TRACE_MAX_CONTEXTS > 256u)
-#error "KYMO_TRACE_MAX_CONTEXTS must be from 1 through 256"
-#endif
-
-#if (KYMO_TRACE_MAX_DEPTH < 1u) || (KYMO_TRACE_MAX_DEPTH > 255u)
-#error "KYMO_TRACE_MAX_DEPTH must be from 1 through 255"
-#endif
-
-#if (KYMO_TRACE_MAX_ISR_DEPTH < 1u) || (KYMO_TRACE_MAX_ISR_DEPTH > 16u)
-#error "KYMO_TRACE_MAX_ISR_DEPTH must be from 1 through 16"
-#endif
-
+/** @brief Event flag: first scope of a context (call-tree root). */
 #define KYMO_TRACE_FLAG_ROOT_BOUNDARY 0x0001u
+/** @brief Event flag: context state is unreliable (mismatch, overflow, unknown core). */
 #define KYMO_TRACE_FLAG_CONTEXT_INVALID 0x0002u
+/** @brief Event flag: KymoTraceEvent::arg carries a value. */
 #define KYMO_TRACE_FLAG_ARG_VALID 0x0004u
+/** @brief Event flag: trusted recovery checkpoint. */
 #define KYMO_TRACE_FLAG_RECOVERY 0x0008u
 
 /** @brief Recorder clock and synchronization bindings.
- * @details When critical callbacks are absent the application serializes every
- * recorder access. Supplied callbacks are not presumed ISR-safe.
+ * @details Only clock_ticks is required. When critical callbacks are absent the
+ * application serializes every recorder access. Supplied callbacks are not presumed
+ * ISR-safe. Start from a zero-initialized object and assign fields by name.
  */
 typedef struct KymoTraceConfig {
-    /** @brief Read monotonically increasing hardware ticks. */
+    /** @brief Required: read monotonically increasing hardware ticks. */
     uint64_t (*clock_ticks)(void *user);
 
-    /** @brief Return a core ID in 0..KYMO_TRACE_CORE_COUNT-1. */
+    /** @brief Optional: return a core ID in 0..KYMO_TRACE_CORE_COUNT-1; NULL means core 0. */
     uint8_t (*core_id)(void *user);
 
-    /** @brief Return the currently active context ID, or zero if unknown. */
+    /** @brief Optional: return the active context ID for ISR entry; NULL means unknown (0). */
     uint32_t (*current_context)(void *user);
 
     /** @brief Enter the application's recorder-wide critical section. */
@@ -136,9 +105,9 @@ typedef struct KymoTraceRecorder {
 /** @brief Initialize persistent recorder storage.
  * @param[out] recorder Caller-owned object to initialize.
  * @param[in] config Required time and context callbacks and synchronization contract.
- * @return 1 on success; 0 on invalid pointers or callback pairing.
+ * @return KYMO_OK on success; KYMO_BAD_CONFIG on invalid pointers or callback pairing.
  */
-uint8_t KymoTrace_Init(KymoTraceRecorder *recorder, const KymoTraceConfig *config);
+KymoStatus KymoTrace_Init(KymoTraceRecorder *recorder, const KymoTraceConfig *config);
 
 /** @brief Record a function or scope entry; bounded and allocation-free.
  * @param[in,out] recorder Initialized recorder.
@@ -251,9 +220,10 @@ void KymoTrace_FlowReceive(
  * @param[in,out] recorder Initialized recorder.
  * @param[in] context_id Context to recover.
  * @param[in] generation New application-supplied context generation.
- * @return 1 if reset was recorded; 0 if the context is active or invalid.
+ * @return KYMO_OK if recorded; KYMO_REJECTED while the context has open scopes or
+ *         no context slot is free; KYMO_BAD_CONFIG for an uninitialized recorder.
  */
-uint8_t KymoTrace_ContextReset(
+KymoStatus KymoTrace_ContextReset(
     KymoTraceRecorder *recorder,
     uint32_t context_id,
     uint32_t generation);
@@ -261,9 +231,10 @@ uint8_t KymoTrace_ContextReset(
 /** @brief Pop one event in round-robin core order.
  * @param[in,out] recorder Initialized recorder.
  * @param[out] event Receives the next event if available.
- * @return 1 if copied; 0 if no event is available or arguments are invalid.
+ * @return KYMO_OK if copied; KYMO_IDLE if no event is queued; KYMO_BAD_CONFIG for
+ *         invalid arguments or an uninitialized recorder.
  */
-uint8_t KymoTrace_Pop(KymoTraceRecorder *recorder, KymoTraceEvent *event);
+KymoStatus KymoTrace_Pop(KymoTraceRecorder *recorder, KymoTraceEvent *event);
 
 /** @brief Read cumulative dropped events for one core under recorder locking.
  * @param[in,out] recorder Initialized recorder.
@@ -305,6 +276,6 @@ private:
     uint32_t m_context;
     uint16_t m_symbol;
 };
-#endif
-#endif
-#endif
+#endif /* __cplusplus */
+#endif /* KYMO_EFFECTIVE_TRACE */
+#endif /* KYMO_TRACE_H */

@@ -10,7 +10,7 @@ def render_port_template(project:dict[str,Any])->dict[str,str]:
     clock=b.get("clock","kymo_port_clock_ms"); sample=b.get("sample","kymo_port_sample"); write=b.get("write","kymo_port_write")
     busy=b.get("busy","kymo_port_busy"); service=b.get("service","kymo_port_service")
     declarations=f'''#pragma once
-#include <kymo_runtime.h>
+#include <KymoCore.h>
 #ifdef __cplusplus
 extern "C" {{
 #endif
@@ -23,7 +23,7 @@ uint8_t {write}(void *user, const uint8_t *bytes, uint8_t length);
     declarations+="#ifdef __cplusplus\n}\n#endif\n"
     bodies=f'''/* User-owned starter only. Replace each TODO with target-specific behavior. */
 #include "kymo_port.h"
-#include <kymo_features.h>
+#include <kymo_config.h>
 #if KYMO_EFFECTIVE_RUNTIME
 #error Implement the Kymo port callbacks in this file before enabling runtime
 extern "C" uint32_t {clock}(void *user) {{
