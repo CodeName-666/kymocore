@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (QHBoxLayout, QLabel, QListWidget, QListWidgetItem
                                QStackedWidget, QVBoxLayout, QWidget)
 
 from .. import catalog
+from ..i18n import tr
 from .section_page import SectionPage
 from .session import ProjectSession
 
@@ -32,14 +33,14 @@ class GuidedWizard(QWidget):
         side.setObjectName("sidebar")
         side.setFixedWidth(260)
         side_layout = QVBoxLayout(side)
-        heading = QLabel("Guided setup")
+        heading = QLabel(tr("Guided setup"))
         heading.setObjectName("sidebarTitle")
         side_layout.addWidget(heading)
         self.steps = QListWidget()
         self.steps.setObjectName("navigation")
         self.steps.itemClicked.connect(self._step_clicked)
         side_layout.addWidget(self.steps, 1)
-        hint = QLabel("You can switch to the professional mode at any time; nothing is lost.")
+        hint = QLabel(tr("You can switch to the professional mode at any time; nothing is lost."))
         hint.setObjectName("fieldHelp")
         hint.setWordWrap(True)
         side_layout.addWidget(hint)
@@ -55,11 +56,11 @@ class GuidedWizard(QWidget):
         self.message.setWordWrap(True)
         right.addWidget(self.message)
         buttons = QHBoxLayout()
-        self.professional_button = QPushButton("Open in professional mode")
+        self.professional_button = QPushButton(tr("Open in professional mode"))
         self.professional_button.clicked.connect(
             lambda: self.switch_to_professional.emit(self.current_section().key))
-        self.back_button = QPushButton("← Back")
-        self.next_button = QPushButton("Next →")
+        self.back_button = QPushButton(tr("← Back"))
+        self.next_button = QPushButton(tr("Next →"))
         self.next_button.setObjectName("primaryButton")
         self.back_button.clicked.connect(self.back)
         self.next_button.clicked.connect(self.next)
@@ -113,7 +114,7 @@ class GuidedWizard(QWidget):
                 marker = "▶"
             else:
                 marker = "○"
-            item = QListWidgetItem(f"{marker}  {number + 1}. {section.title}")
+            item = QListWidgetItem(f"{marker}  {number + 1}. {tr(section.title)}")
             item.setData(Qt.ItemDataRole.UserRole, number)
             if number == self.index:
                 font = item.font()
@@ -121,7 +122,7 @@ class GuidedWizard(QWidget):
                 item.setFont(font)
             self.steps.addItem(item)
         self.steps.blockSignals(False)
-        self.progress.setText(f"Step {self.index + 1} of {len(sections)}")
+        self.progress.setText(tr("Step {n} of {total}", n=self.index + 1, total=len(sections)))
         self.back_button.setEnabled(self.index > 0)
         last = self.index == len(sections) - 1
         self.next_button.setVisible(not last)
@@ -133,7 +134,7 @@ class GuidedWizard(QWidget):
     def next(self) -> bool:
         errors = self.blocking_errors()
         if errors:
-            self.message.setText("Please fix this first: " + "; ".join(d.message for d in errors[:3]))
+            self.message.setText(tr("Please fix this first: ") + "; ".join(d.localized()[0] for d in errors[:3]))
             return False
         self.index += 1
         self.refresh()

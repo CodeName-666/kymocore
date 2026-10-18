@@ -53,10 +53,19 @@ class GuiWorkflowTests(unittest.TestCase):
         self.assertNotIn("trace", [s.key for s in wizard.step_sections()])
         page = wizard.pages["project"]
         cards = page.editors["profile.preset"]
-        cards._cards.button(2).click()
-        self.assertEqual(window.session.doc["profiles"]["development"]["preset"], "trace")
-        self.assertTrue(window.session.doc["profiles"]["development"]["trace"]["enabled"])
+        xyz, trace = cards._goals
+        profile = window.session.doc["profiles"]["development"]
+        trace.click()
+        self.assertEqual(profile["preset"], "custom")
+        self.assertTrue(profile["trace"]["enabled"])
+        self.assertFalse(profile["features"]["x"])
+        xyz.click()
+        self.assertEqual(profile["preset"], "trace")
         self.assertIn("trace", [s.key for s in wizard.step_sections()])
+        trace.click()
+        self.assertEqual(profile["preset"], "xyz")
+        self.assertFalse(profile["trace"]["enabled"])
+        trace.click()
         # Advanced settings stay hidden in guided mode.
         self.assertNotIn("features.decoder", wizard.pages["telemetry"].editors)
 
@@ -146,6 +155,30 @@ class GuiWorkflowTests(unittest.TestCase):
         editor = window.professional.pages["demo_ext"].editors["demo_ext.flag"]
         editor.input.setChecked(True)
         self.assertTrue(window.session.doc["profiles"]["development"]["features"]["crc"])
+
+    def test_guided_mode_uses_beginner_texts_and_named_profile_copy(self):
+        window = self.window(GUIDED)
+        crc = field("features.crc")
+        guided_editor = window.guided.pages["telemetry"].editors["features.crc"]
+        professional_editor = self.editor(window, "features.crc")
+        self.assertEqual(guided_editor.help.text(), crc.guided_help)
+        self.assertEqual(professional_editor.help.text(), crc.help)
+        self.assertIn(crc.target, guided_editor.title.toolTip())
+        window.session.duplicate_profile("bench")
+        self.assertEqual(window.profile.currentText(), "bench")
+        with self.assertRaises(ValueError):
+            window.session.duplicate_profile("bench")
+
+    def test_rebuild_in_german_keeps_the_project(self):
+        from kymo_configurator import i18n
+        self.addCleanup(i18n.set_language, "en")
+        window = self.window(GUIDED)
+        window.session.set_value(field("project_name"), "Pflanzen")
+        i18n.set_language("de")
+        window._build_ui(GUIDED)
+        self.assertEqual(window.guided.next_button.text(), "Weiter →")
+        self.assertEqual(window.session.doc["project_name"], "Pflanzen")
+        self.assertEqual(window.mode(), GUIDED)
 
 
 if __name__ == "__main__":

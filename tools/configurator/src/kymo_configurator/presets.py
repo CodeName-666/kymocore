@@ -28,13 +28,14 @@ _NO_TRACE = {"enabled": False, "isr": False, "scheduler": False, "flow": False}
 
 PRESETS: dict[str, Preset] = {
     "minimal": Preset(
-        "minimal", "Live values",
-        "Show single measurements (temperature, current, ...) live as curves",
+        "minimal", "Values over time",
+        "Draw single measurements such as temperature, current or speed as curves over time",
         "One value per channel, as small as possible. Matches KYMO_PROFILE_MINIMAL.",
         "KYMO_PROFILE_MINIMAL", dict(_BASE), dict(_NO_TRACE)),
     "xyz": Preset(
-        "xyz", "XY / XYZ data with time",
-        "Plot X/Y or X/Y/Z points with timestamps (positions, trajectories, phase plots)",
+        "xyz", "X/Y or X/Y/Z points",
+        "Draw a value over something other than time, e.g. a plotter head position as X/Y, "
+        "a 3D position as X/Y/Z or a value over an angle",
         "Enables X, Z and timestamps. Matches KYMO_PROFILE_XYZ.",
         "KYMO_PROFILE_XYZ", {**_BASE, "x": True, "z": True, "timestamp": True},
         dict(_NO_TRACE)),
@@ -64,6 +65,37 @@ def apply_preset(profile: dict[str, Any], key: str) -> None:
         for name, function in TRACE_DEFAULT_BINDINGS.items():
             bindings.setdefault(name, function)
     profile["preset"] = key
+
+
+_XYZ_KEYS = ("x", "z", "timestamp")
+
+
+def goals(profile: dict[str, Any]) -> tuple[bool, bool]:
+    """Return which goals beyond live values are selected: (XYZ with time, tracing)."""
+    features = profile.get("features", {})
+    trace = profile.get("trace", {})
+    return (any(bool(features.get(k)) for k in _XYZ_KEYS), bool(trace.get("enabled", False)))
+
+
+def apply_goals(profile: dict[str, Any], xyz: bool, trace: bool) -> None:
+    """Combine the goals freely; live values are always included.
+
+    Only the switches owned by the goals change, so other features chosen by
+    hand (for example CRC) are kept. The profile then reports the preset it
+    matches, or "custom" (for example tracing without XYZ).
+    """
+    features = profile.setdefault("features", {})
+    features["runtime"] = True
+    for key in _XYZ_KEYS:
+        features[key] = xyz
+    if trace:
+        profile.setdefault("trace", {}).update(PRESETS["trace"].trace)
+        bindings = profile["trace"].setdefault("bindings", {})
+        for name, function in TRACE_DEFAULT_BINDINGS.items():
+            bindings.setdefault(name, function)
+    else:
+        profile.setdefault("trace", {}).update(_NO_TRACE)
+    profile["preset"] = matching_preset(profile)
 
 
 def matching_preset(profile: dict[str, Any]) -> str:

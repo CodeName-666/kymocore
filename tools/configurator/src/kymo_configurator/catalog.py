@@ -19,6 +19,7 @@ from typing import Any, Callable
 
 from .model import FEATURES
 from .presets import CUSTOM, PRESETS, apply_preset, matching_preset
+from .i18n import tr
 from .resolution import resolve_profile
 
 PROFILE = "@profile"
@@ -123,6 +124,8 @@ class Field:
     visible_when: Predicate | None = None
     on_change: ChangeHook | None = None
     placeholder: str = ""
+    guided_help: str = ""
+    """Beginner wording shown instead of ``help`` in guided mode (says when it is needed)."""
 
     def value(self, view: View) -> Any:
         return view.get(self.path, self.default)
@@ -154,6 +157,8 @@ class Group:
     description: str = ""
     advanced: bool = False
     visible_when: Predicate | None = None
+    guided_description: str = ""
+    """Beginner wording shown instead of ``description`` in guided mode."""
 
 
 @dataclass(frozen=True)
@@ -250,52 +255,56 @@ def _runtime_direct_write(view: View) -> bool:
 
 
 def _feature(key: str, label: str, help_text: str, macro: str, advanced: bool = False,
-             enabled_when: Predicate | None = _on) -> Field:
+             enabled_when: Predicate | None = _on, guided: str = "") -> Field:
     return Field(f"features.{key}", (PROFILE, "features", key), label, help_text,
                  target=macro, advanced=advanced, enabled_when=enabled_when,
-                 requires="Enable KymoCore for this profile first.", on_change=_mark_custom)
+                 requires="Enable KymoCore for this profile first.", on_change=_mark_custom,
+                 guided_help=guided)
 
 
 def _binding(key: str, label: str, help_text: str, target: str, advanced: bool = False,
              enabled_when: Predicate | None = _runtime, requires: str = "Needs the telemetry runtime.",
-             placeholder: str = "") -> Field:
+             placeholder: str = "", guided: str = "") -> Field:
     return Field(f"bindings.{key}", ("bindings", key), label, help_text, kind="identifier",
                  default="", target=target, advanced=advanced, enabled_when=enabled_when,
-                 requires=requires, placeholder=placeholder)
+                 requires=requires, placeholder=placeholder, guided_help=guided)
 
 
-def _trace_binding(key: str, label: str, help_text: str, target: str, advanced: bool = False) -> Field:
+def _trace_binding(key: str, label: str, help_text: str, target: str, advanced: bool = False,
+                   guided: str = "") -> Field:
     return Field(f"trace.bindings.{key}", (PROFILE, "trace", "bindings", key), label, help_text,
                  kind="identifier", default="", target=target, advanced=advanced,
-                 enabled_when=_trace_requested, requires="Enable trace recording first.")
+                 enabled_when=_trace_requested, requires="Enable trace recording first.",
+                 guided_help=guided)
 
 
 def _trace_int(key: tuple[str, ...], label: str, help_text: str, low: int, high: int, default: int,
-               target: str = "", advanced: bool = False) -> Field:
+               target: str = "", advanced: bool = False, guided: str = "") -> Field:
     return Field("trace." + ".".join(key), (PROFILE, "trace", *key), label, help_text, kind="int",
                  default=default, minimum=low, maximum=high, target=target, advanced=advanced,
-                 enabled_when=_trace_requested, requires="Enable trace recording first.")
+                 enabled_when=_trace_requested, requires="Enable trace recording first.",
+                 guided_help=guided)
 
 
 # --- summaries -------------------------------------------------------------
 
 def _summary_project(view: View) -> str:
     preset = view.profile.get("preset", CUSTOM)
-    title = PRESETS[preset].title if preset in PRESETS else "Custom selection"
-    state = "enabled" if view.enabled else "compiled out (KYMO_ENABLED=0)"
-    return f"Profile '{view.profile_name}': {title}, {state}"
+    title = tr(PRESETS[preset].title) if preset in PRESETS else tr("Custom selection")
+    state = tr("enabled") if view.enabled else tr("compiled out (KYMO_ENABLED=0)")
+    return tr("Profile '{name}': {title}, {state}", name=view.profile_name, title=title, state=state)
 
 
 def _summary_features(view: View) -> str:
     on = [k for k in ("x", "z", "timestamp", "crc", "decoder", "cpp") if view.feature(k)]
-    api = "Init/Main runtime" if view.feature("runtime") else "no runtime"
-    return api + (", " + ", ".join(on) if on else ", scalar values only")
+    api = tr("Init/Main runtime") if view.feature("runtime") else tr("no runtime")
+    return api + (", " + ", ".join(on) if on else ", " + tr("scalar values only"))
 
 
 def _summary_channels(view: View) -> str:
     channels = view.doc.get("channels", [])
     if not isinstance(channels, list):
-        return "invalid channel list"
+        return tr("invalid channel list")
     rate = 0.0
     traffic = 0.0
     for ch in channels:
@@ -304,21 +313,22 @@ def _summary_channels(view: View) -> str:
             size = 9 + 4 * sum(bool(ch.get(k)) for k in ("x", "z", "timestamp"))
             rate += 1000.0 / period
             traffic += 1000.0 / period * size
-    return f"{len(channels)} channel(s), ~{rate:.0f} frames/s, ~{traffic:.0f} bytes/s"
+    return tr("{count} channel(s), ~{rate} frames/s, ~{traffic} bytes/s",
+              count=len(channels), rate=f"{rate:.0f}", traffic=f"{traffic:.0f}")
 
 
 def _summary_callbacks(view: View) -> str:
     b = view.doc.get("bindings", {}) if isinstance(view.doc.get("bindings"), dict) else {}
     missing = [k for k in ("clock", "sample", "write") if not b.get(k)]
-    return "all required callbacks named" if not missing else "missing: " + ", ".join(missing)
+    return tr("all required callbacks named") if not missing else tr("missing: ") + ", ".join(missing)
 
 
 def _summary_trace(view: View) -> str:
     if not view.trace():
-        return "off"
+        return tr("off")
     events = [k for k in ("isr", "scheduler", "flow") if view.trace(k)]
     mode = view.get((PROFILE, "trace", "transport", "mode"), "dedicated_trace")
-    return "recording" + (" + " + ", ".join(events) if events else "") + f", {mode}"
+    return tr("recording") + (" + " + ", ".join(events) if events else "") + f", {mode}"
 
 
 def _summary_build(view: View) -> str:
@@ -337,25 +347,38 @@ SECTIONS: list[Section] = [
             Group("Project", (
                 Field("project_name", ("project_name",), "Project name",
                       "Used for generated metadata and as the trace device name.", kind="text",
-                      default="KymoProject"),
+                      default="KymoProject",
+                      guided_help="Any name you like, e.g. 'Plant monitor'. KymoStudio shows it so you "
+                                  "recognise your device."),
             )),
             Group("This profile", (
                 Field("profile.enabled", (PROFILE, "enabled"), "Use KymoCore in this profile",
                       "Off compiles the whole library out (for example in production). All other "
                       "settings are kept and become active again when switched back on.",
-                      target="KYMO_ENABLED"),
+                      target="KYMO_ENABLED",
+                      guided_help="Leave this ticked. Untick it only for a build in which KymoCore should "
+                                  "disappear completely, e.g. the finished product. Your settings are kept."),
                 Field("profile.preset", (PROFILE, "preset"), "What do you want to do?",
                       "Choosing a goal sets the matching features in one step. You can change "
                       "each feature afterwards; the profile then shows as custom.",
                       kind="preset", default=CUSTOM,
                       choices=tuple((p.key, p.title) for p in PRESETS.values()) + ((CUSTOM, "Custom selection"),),
                       target="KYMO_PROFILE", enabled_when=_on,
-                      requires="Enable KymoCore for this profile first.", on_change=_apply_preset),
-            )),
+                      requires="Enable KymoCore for this profile first.", on_change=_apply_preset,
+                      guided_help="Tick everything you want to use; the options combine freely. Hover "
+                                  "over an option for examples. "
+                                  "This sets the matching features for you, and the next steps show "
+                                  "what was chosen."),
+            ), guided_description="A profile is a named set of settings for one firmware build, e.g. "
+                                  "'development' with all measurements and 'production' with KymoCore "
+                                  "switched off. Most projects need only one. The 'Build profile' selector "
+                                  "at the top switches between profiles, 'New profile…' adds one."),
         ),
         guided_title="What do you want to achieve?",
-        guided_intro="KymoCore sends measurements from your microcontroller to KymoStudio. "
-                     "Pick the goal that fits best; everything can be refined later.",
+        guided_intro="KymoCore sends measurements from your microcontroller to KymoStudio on your PC, "
+                     "where they are drawn as live curves. This wizard asks a few questions and then "
+                     "writes the matching configuration files for your firmware. Nothing is final: "
+                     "every answer can be changed later.",
         diagnostic_prefixes=("project_name", "profiles.{profile}.enabled", "profiles.{profile}.preset",
                              "active_profile", "schema_version", "core_config_api_version", "profiles"),
         summary=_summary_project, order=10),
@@ -367,30 +390,50 @@ SECTIONS: list[Section] = [
             Group("Programming interface", (
                 _feature("runtime", "Cyclic runtime (Kymo_Init / Kymo_Main)",
                          "KymoCore samples your channels on schedule; recommended for most projects.",
-                         "KYMO_ENABLE_RUNTIME"),
+                         "KYMO_ENABLE_RUNTIME",
+                         guided="Leave ticked unless you know otherwise. KymoCore then reads your "
+                                "measurements by itself at a fixed rhythm (e.g. every 20 ms) and sends them. "
+                                "Your program only calls Kymo_Init() once and Kymo_Main() in its main loop."),
                 _feature("cpp", "C++ push sender (KymoSender)",
                          "Send single values whenever your code decides, in addition to or instead of "
-                         "the cyclic runtime.", "KYMO_ENABLE_CPP"),
-            )),
+                         "the cyclic runtime.", "KYMO_ENABLE_CPP",
+                         guided="Tick this only if you want to send a value at a moment you choose, e.g. "
+                                "right after a sensor reading. Needs C++ (Arduino is C++). Not needed "
+                                "for normal cyclic sending."),
+            ), guided_description="How your program hands its values to KymoCore."),
             Group("Data per sample", (
                 _feature("x", "X coordinate", "Allows channels to send an X value, e.g. position or angle.",
-                         "KYMO_ENABLE_X"),
+                         "KYMO_ENABLE_X",
+                         guided="Tick if a signal is a point instead of a single number, e.g. the X/Y "
+                                "position of a plotter head, or a value drawn over an angle instead of over time."),
                 _feature("z", "Z coordinate", "Allows channels to send a Z value for 3D data.",
-                         "KYMO_ENABLE_Z"),
+                         "KYMO_ENABLE_Z",
+                         guided="Tick for 3D points (X, Y and Z), e.g. a position in space."),
                 _feature("timestamp", "Timestamp", "Adds the time since start to each sample (4 bytes).",
-                         "KYMO_ENABLE_TIMESTAMP"),
-            ), description="Enabling a field allows it; each channel then chooses whether it uses it."),
+                         "KYMO_ENABLE_TIMESTAMP",
+                         guided="Tick if KymoStudio must know exactly when each value was measured, e.g. "
+                                "for precise timing. Without it, KymoStudio uses the arrival time, which is "
+                                "fine for most live curves. Costs 4 extra bytes per value."),
+            ), description="Enabling a field allows it; each channel then chooses whether it uses it.",
+               guided_description="By default every measurement is one number, drawn over time. Tick "
+                                  "an extra field only if some of your signals need it; each channel can "
+                                  "then decide in the next step whether it uses it."),
             Group("Integrity and decoding", (
                 _feature("crc", "CRC checksum on sent frames",
                          "Detects transmission errors on noisy links. Older receivers require it.",
-                         "KYMO_ENABLE_CRC"),
+                         "KYMO_ENABLE_CRC",
+                         guided="Tick if the connection can corrupt data (long cables, radio, motors "
+                                "nearby). Broken frames are then dropped instead of drawn wrong. Over a "
+                                "short USB cable it is usually not needed."),
                 _feature("decoder", "Frame decoder on the MCU",
                          "Only needed when the microcontroller itself must read Kymo frames.",
                          "KYMO_ENABLE_DECODER", advanced=True),
             )),
         ),
         guided_title="Which extras do you need?",
-        guided_intro="Your goal already selected the basic features. Adjust them here if needed.",
+        guided_intro="Here you choose which building blocks of KymoCore end up on your "
+                     "microcontroller. Your answer in step 1 has already ticked what you need. "
+                     "Not sure? Leave everything as it is and click Next. Unticked parts use no memory.",
         diagnostic_prefixes=("profiles.{profile}.features",),
         summary=_summary_features, visible_when=_on, order=20),
     Section(
@@ -410,31 +453,47 @@ SECTIONS: list[Section] = [
         groups=(
             Group("Required functions", (
                 _binding("clock", "Clock", "Returns milliseconds since start, e.g. a wrapper around millis().",
-                         "uint32_t clock(void *user)", placeholder="kymo_port_clock_ms"),
+                         "uint32_t clock(void *user)", placeholder="kymo_port_clock_ms",
+                         guided="Name of a function in your code that returns the milliseconds since start. "
+                                "On Arduino it simply returns millis()."),
                 _binding("sample", "Read a measurement",
                          "Fills the sample for the requested channel ID and returns 1, or 0 to skip.",
                          "uint8_t sample(void *user, uint8_t id, KymoSample *out)",
-                         placeholder="kymo_port_sample"),
+                         placeholder="kymo_port_sample",
+                         guided="Name of the function that reads one measurement. KymoCore calls it with "
+                                "a channel number; your function fills in the value, e.g. a sensor reading."),
                 _binding("write", "Send bytes",
                          "Hands frame bytes to UART/USB/TCP and returns how many were accepted.",
                          "uint8_t write(void *user, const uint8_t *bytes, uint8_t length)",
                          enabled_when=_runtime_direct_write,
                          requires="Not used: telemetry goes through the shared trace link.",
-                         placeholder="kymo_port_write"),
-            )),
+                         placeholder="kymo_port_write",
+                         guided="Name of the function that sends bytes to the PC, e.g. with Serial.write() "
+                                "on Arduino."),
+            ), guided_description="KymoCore does not know your hardware. You write a few small functions "
+                                  "and enter their names here; the generated files call them. Not written "
+                                  "yet? Use the grey suggested names: the 'init-port' command creates a "
+                                  "starter file containing exactly these functions."),
             Group("Transport behaviour", (
                 Field("bindings.write_borrows_buffer", ("bindings", "write_borrows_buffer"),
                       "Driver keeps the bytes after write() returns (DMA/USB)",
                       "Then a busy function is required so KymoCore does not overwrite the frame "
                       "while it is still being sent.", default=True, enabled_when=_runtime,
-                      requires="Needs the telemetry runtime.", target="KymoConfig.busy"),
+                      requires="Needs the telemetry runtime.", target="KymoConfig.busy",
+                      guided_help="Tick if your driver sends in the background (DMA, many USB stacks) and "
+                                  "still uses the bytes after your send function returned. Then the 'Transport "
+                                  "busy' function below is needed too. For a plain Serial.write() untick it."),
                 _binding("busy", "Transport busy",
                          "Returns nonzero while the driver still owns the last frame.",
-                         "uint8_t busy(void *user)", placeholder="kymo_port_busy"),
+                         "uint8_t busy(void *user)", placeholder="kymo_port_busy",
+                         guided="Only needed when the box above is ticked: a function that returns 1 while "
+                                "the driver is still sending, otherwise 0."),
                 _binding("service", "Transport service (optional)",
                          "Called once per cycle to keep a connection alive, e.g. a network poll.",
-                         "void service(void *user)", placeholder="kymo_port_service"),
-            )),
+                         "void service(void *user)", placeholder="kymo_port_service",
+                         guided="Optional. A function KymoCore calls on every cycle, e.g. to keep a WiFi "
+                                "connection alive. Leave empty if you do not need it."),
+            ), guided_description="How the bytes leave your microcontroller."),
             Group("Context pointers", (
                 _binding("clock_user", "Clock context object", "Global object passed to the clock as user.",
                          "KymoConfig.clock_user", advanced=True),
@@ -447,7 +506,8 @@ SECTIONS: list[Section] = [
             Group("C++ push sender", (
                 _binding("cpp_stream", "KymoStream object",
                          "Name of your KymoStream instance that sends the bytes.", "KymoStream &",
-                         enabled_when=_cpp, requires="Enable the C++ push sender."),
+                         enabled_when=_cpp, requires="Enable the C++ push sender.",
+                         guided="Name of the KymoStream object in your code that the C++ sender writes to."),
                 _binding("cpp_clock", "Millisecond clock",
                          "No-argument function returning milliseconds, used for C++ timestamps.",
                          "uint32_t clock(void)", enabled_when=_cpp_time,
@@ -459,8 +519,9 @@ SECTIONS: list[Section] = [
             ), visible_when=_cpp),
         ),
         guided_title="How does KymoCore reach your hardware?",
-        guided_intro="Enter the names of three small functions you will write (or generate a "
-                     "starter file with 'init-port'). KymoCore stays hardware-independent.",
+        guided_intro="KymoCore runs on any microcontroller because it never talks to the hardware "
+                     "itself. Instead it calls a few functions from your own program: one for the time, "
+                     "one that reads a measurement and one that sends bytes. Here you only enter their names.",
         diagnostic_prefixes=("bindings",),
         summary=_summary_callbacks, visible_when=lambda v: v.feature("runtime") or v.feature("cpp"),
         order=40),
@@ -472,34 +533,45 @@ SECTIONS: list[Section] = [
             Group("What is recorded", (
                 Field("trace.enabled", (PROFILE, "trace", "enabled"), "Trace recording",
                       "Compiles the recorder, the KYMO_TRACE_* macros and the transport mux.",
+                      guided_help="Leave ticked to record when your functions run. You mark the "
+                                  "interesting places in your code with KYMO_TRACE_* macros.",
                       target="KYMO_ENABLE_TRACE", enabled_when=_on,
                       requires="Enable KymoCore for this profile first.", on_change=_mark_custom),
                 Field("trace.isr", (PROFILE, "trace", "isr"), "Interrupts",
                       "Records interrupt entry and exit.", target="KYMO_ENABLE_TRACE_ISR",
+                      guided_help="Tick to see when interrupt handlers run and how long they take.",
                       enabled_when=_trace_requested, requires="Enable trace recording first.",
                       on_change=_mark_custom),
                 Field("trace.scheduler", (PROFILE, "trace", "scheduler"), "Task switches",
                       "Records RTOS task switches. Needs interrupt tracing and a verified port.",
+                      guided_help="Only for RTOS projects (e.g. FreeRTOS): shows which task runs when. "
+                                  "Leave unticked if you do not use an RTOS.",
                       target="KYMO_ENABLE_TRACE_SCHEDULER", enabled_when=_trace_requested,
                       requires="Enable trace recording first.", on_change=_mark_custom),
                 Field("trace.flow", (PROFILE, "trace", "flow"), "Flows",
                       "Correlates send/receive pairs across tasks.", target="KYMO_ENABLE_TRACE_FLOW",
+                      guided_help="Draws arrows from where data is sent to where it is received, e.g. "
+                                  "between an interrupt and a task.",
                       enabled_when=_trace_requested, requires="Enable trace recording first.",
                       on_change=_mark_custom),
             )),
             Group("Target", (
                 Field("port.kind", ("port", "kind"), "Target port",
                       "Describes the platform integration. Changing it resets capability verification.",
+                      guided_help="Your hardware family. Choose 'Generic' if yours is not listed.",
                       kind="choice", default="generic",
                       choices=(("generic", "Generic"), ("esp32_freertos", "ESP32 + FreeRTOS"),
                                ("stm32_baremetal", "STM32 bare metal")),
                       enabled_when=_trace_requested, requires="Enable trace recording first.",
                       on_change=_port_changed),
                 _trace_int(("port", "core_count"), "CPU cores", "Number of cores that record events.",
-                           1, 2, 1, "KYMO_TRACE_CORE_COUNT"),
+                           1, 2, 1, "KYMO_TRACE_CORE_COUNT",
+                           guided="1 for most microcontrollers; 2 for dual-core chips such as the ESP32."),
                 _trace_int(("clock", "frequency_hz"), "Trace clock (Hz)",
                            "Tick rate of your trace clock, e.g. 1000000 for microseconds.",
-                           1, 2147483647, 1000000),
+                           1, 2147483647, 1000000,
+                           guided="How many times per second your trace clock counts. 1000000 means it "
+                                  "counts microseconds, e.g. micros() on Arduino."),
                 Field("trace.clock.counter_bits", (PROFILE, "trace", "clock", "counter_bits"),
                       "Clock counter width", "Width of the hardware counter.", kind="choice",
                       default=64, choices=((32, "32 bit"), (64, "64 bit")), advanced=True,
@@ -513,6 +585,8 @@ SECTIONS: list[Section] = [
             Group("Buffers", (
                 Field("trace.buffer.events_per_core", (PROFILE, "trace", "buffer", "events_per_core"),
                       "Events per core", "Ring size per core; 32 bytes RAM per event.", kind="choice",
+                      guided_help="How many events are buffered before they are sent. More events need "
+                                  "more RAM (32 bytes each) but lose less during bursts.",
                       default=16, choices=_EVENTS_CHOICES, target="KYMO_TRACE_EVENTS_PER_CORE",
                       enabled_when=_trace_requested, requires="Enable trace recording first."),
                 _trace_int(("buffer", "max_contexts"), "Tasks / contexts", "How many tasks or ISRs are tracked.",
@@ -525,6 +599,8 @@ SECTIONS: list[Section] = [
             Group("Link", (
                 Field("trace.transport.mode", (PROFILE, "trace", "transport", "mode"), "Link usage",
                       "Shared: telemetry frames and trace events use the same link through the mux.",
+                      guided_help="Choose 'Shared' if measurements and trace events go over the same "
+                                  "cable, e.g. one USB serial port.",
                       kind="choice", default="dedicated_trace",
                       choices=(("dedicated_trace", "Trace only on this link"),
                                ("shared_v2", "Shared with telemetry")),
@@ -532,7 +608,8 @@ SECTIONS: list[Section] = [
                       requires="Enable trace recording first."),
                 _trace_int(("transport", "max_frame_bytes"), "Largest frame (bytes)",
                            "Maximum bytes your link sends at once (64..240).", 64, 240, 128,
-                           "KymoMuxConfig.max_frame_size"),
+                           "KymoMuxConfig.max_frame_size",
+                           guided="The default of 128 works for serial and USB."),
                 _trace_int(("transport", "drain_events"), "Events per service call",
                            "Upper bound of events sent per cycle.", 1, 4096, 16, advanced=True),
                 _trace_int(("transport", "drain_bytes"), "Bytes per service call",
@@ -544,17 +621,24 @@ SECTIONS: list[Section] = [
                       (PROFILE, "trace", "transport", "write_borrows_buffer"),
                       "Driver keeps the bytes after write() returns",
                       "Then the transport busy function is required.", default=False,
+                      guided_help="Tick only if your driver sends in the background (DMA, USB) and then "
+                                  "fill in 'Link busy' below.",
                       enabled_when=_trace_requested, requires="Enable trace recording first."),
             )),
             Group("Trace functions", (
                 _trace_binding("clock", "Trace clock", "Returns the free-running tick counter.",
-                               "uint64_t clock(void *user)"),
+                               "uint64_t clock(void *user)",
+                               guided="Name of your function that returns the trace clock count."),
                 _trace_binding("session_id", "Session ID", "Returns a new random ID per boot.",
-                               "uint64_t session(void)"),
+                               "uint64_t session(void)",
+                               guided="Name of a function that returns a random number, new on every start, "
+                                      "so KymoStudio can tell recordings apart."),
                 _trace_binding("trace_write", "Send trace bytes", "Writes mux frames to the link.",
-                               "size_t write(void *user, const uint8_t *bytes, size_t length)"),
+                               "size_t write(void *user, const uint8_t *bytes, size_t length)",
+                               guided="Name of the function that sends the trace bytes to the PC."),
                 _trace_binding("transport_busy", "Link busy", "Returns nonzero while the driver owns the frame.",
-                               "uint8_t busy(void *user)"),
+                               "uint8_t busy(void *user)",
+                               guided="Only needed with background sending: returns 1 while still sending."),
                 _trace_binding("core_id", "Current core (optional)", "Empty means core 0.",
                                "uint8_t core_id(void *user)", advanced=True),
                 _trace_binding("current_context", "Current task (optional)",
@@ -569,8 +653,9 @@ SECTIONS: list[Section] = [
         ),
         widgets=("symbols", "contexts"),
         guided_title="Configure execution tracing",
-        guided_intro="Tracing needs a fast clock and a link. The dictionaries name the functions "
-                     "(symbols) and tasks (contexts) that appear in KymoStudio.",
+        guided_intro="Tracing records when your functions and interrupts run, so KymoStudio can show a "
+                     "timeline. It needs a fast clock and a connection to the PC. The lists below give "
+                     "your functions (symbols) and tasks (contexts) readable names in KymoStudio.",
         diagnostic_prefixes=("profiles.{profile}.trace", "port", "symbols", "contexts"),
         summary=_summary_trace, visible_when=_on, guided_when=_trace, order=50),
     Section(
@@ -583,10 +668,15 @@ SECTIONS: list[Section] = [
                       "Produces matching include helpers (Makefile, CMake or PlatformIO scripts).",
                       kind="choice", default="gcc",
                       choices=(("gcc", "Plain compiler / Makefile"), ("cmake", "CMake"),
-                               ("platformio", "PlatformIO"))),
+                               ("platformio", "PlatformIO")),
+                      guided_help="The tool that builds your firmware. It decides which helper files are "
+                                  "created so your build finds the configuration. Using VS Code with "
+                                  "PlatformIO? Choose PlatformIO."),
                 Field("build.output_dir", ("build", "output_dir"), "Output folder",
                       "Relative to the project file; one subfolder per profile.", kind="text",
-                      default="generated/kymo"),
+                      default="generated/kymo",
+                      guided_help="Where the generated files are stored, next to the project file. The "
+                                  "default is fine for most projects."),
                 Field("build.include_dir", ("build", "include_dir"), "Project include folder",
                       "Your project's include folder (informational).", kind="text", default="include",
                       advanced=True),
@@ -614,7 +704,8 @@ SECTIONS: list[Section] = [
         "Effective settings, open problems and the files that will be generated.",
         widgets=("review",),
         guided_title="Review and generate",
-        guided_intro="Check the summary. Generate writes the configuration snapshot.",
+        guided_intro="Check the summary. 'Generate' writes the configuration files that your firmware "
+                     "build includes. You can come back and generate again at any time.",
         order=1000),
 ]
 

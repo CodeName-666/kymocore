@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (QHBoxLayout, QLabel, QListWidget, QListWidgetItem
                                QStackedWidget, QVBoxLayout, QWidget)
 
 from .. import catalog
+from ..i18n import tr
 from .section_page import SectionPage
 from .session import ProjectSession
 
@@ -33,7 +34,7 @@ class ProfessionalEditor(QWidget):
         side = QWidget()
         side.setObjectName("sidebar")
         side_layout = QVBoxLayout(side)
-        heading = QLabel("Configuration")
+        heading = QLabel(tr("Configuration"))
         heading.setObjectName("sidebarTitle")
         side_layout.addWidget(heading)
         self.nav = QListWidget()
@@ -42,7 +43,7 @@ class ProfessionalEditor(QWidget):
         self.nav.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.nav.currentRowChanged.connect(self._select)
         side_layout.addWidget(self.nav, 1)
-        legend = QLabel("✓ ready   ⚠ warning   ✖ needs attention")
+        legend = QLabel(tr("✓ ready   ⚠ warning   ✖ needs attention"))
         legend.setObjectName("fieldHelp")
         side_layout.addWidget(legend)
         splitter.addWidget(side)
@@ -72,7 +73,7 @@ class ProfessionalEditor(QWidget):
             self.pages[section.key] = page
             self.keys.append(section.key)
             self.stack.addWidget(page)
-            item = QListWidgetItem(section.title)
+            item = QListWidgetItem(tr(section.title))
             item.setData(Qt.ItemDataRole.UserRole, section.key)
             self.nav.addItem(item)
         self.nav.blockSignals(False)
@@ -86,9 +87,9 @@ class ProfessionalEditor(QWidget):
             item = self.nav.item(row)
             summary = section.summary(view) if section.summary else ""
             marker = status_marker(self.session, section) if key != "review" else "▶"
-            item.setText(f"{marker}  {section.title}" + (f"\n{summary}" if summary else ""))
+            item.setText(f"{marker}  {tr(section.title)}" + (f"\n{summary}" if summary else ""))
             item.setHidden(not section.is_visible(view))
-            item.setToolTip(section.description)
+            item.setToolTip(tr(section.description))
 
     def current_key(self) -> str:
         row = self.nav.currentRow()

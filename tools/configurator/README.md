@@ -17,15 +17,15 @@ python -m venv .venv-configurator
 
 ## Two ways to work
 
-- **Guided setup** (`gui --mode guided`): asks what you want to achieve (live values,
-  XY/XYZ data with time, or execution tracing), then walks through channels,
+- **Guided setup** (`gui --mode guided`): asks what you want to achieve (values over time are
+  always included; X/Y or X/Y/Z points and execution tracing can be ticked on top), then walks through channels,
   callbacks, optional tracing and output step by step. Advanced options keep safe
   defaults; a step with open problems cannot be left forward.
 - **Professional mode** (`gui --mode professional`): every setting at once, grouped
   by topic, with live status per topic (✓/⚠/✖), inline problems, a review page with
   the effective macros and a preview of the generated files.
 
-Without `--mode` a start page offers both. Both modes edit the same project, so you
+Without `--mode` a start page offers both. The interface is available in English and German: `--lang en|de` or the language selector in the toolbar (remembered); without a choice it follows the system language. The GUI also shows diagnostics in the selected language; the CLI and `--json` output stay English. Both modes edit the same project, so you
 can switch at any time. Every setting shows a plain-language explanation and the C
 macro, configuration field or function signature it affects.
 

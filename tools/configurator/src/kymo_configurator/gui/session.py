@@ -16,6 +16,7 @@ from PySide6.QtCore import QObject, Signal
 
 from .. import catalog
 from ..generation import _render, generate
+from ..i18n import tr
 from ..migration import migrate, needs_migration
 from ..model import default_project, load_project, save_project
 from ..resolution import resolve_profile
@@ -43,8 +44,8 @@ class ProjectSession(QObject):
         self.notes = []
         if needs_migration(doc):
             doc = migrate(doc)
-            self.notes.append("This project was written for KymoCore 6.x and has been upgraded "
-                              "to the KymoCore 7.0 format. Save to keep the upgrade.")
+            self.notes.append(tr("This project was written for KymoCore 6.x and has been upgraded "
+                                 "to the KymoCore 7.0 format. Save to keep the upgrade."))
             self.dirty = True
         return doc
 
@@ -92,14 +93,18 @@ class ProjectSession(QObject):
             self.dirty = True
             self._invalidate(replaced=True)
 
-    def duplicate_profile(self) -> str:
+    def duplicate_profile(self, name: str | None = None) -> str:
+        """Copy the active profile under ``name`` (or a free ``<profile>_copy`` name) and select it."""
         source = self.profile
-        base = source + "_copy"
-        name = base
-        index = 2
-        while name in self.profiles:
-            name = f"{base}{index}"
-            index += 1
+        if name is None:
+            base = source + "_copy"
+            name = base
+            index = 2
+            while name in self.profiles:
+                name = f"{base}{index}"
+                index += 1
+        elif not name or name in self.profiles:
+            raise ValueError(f"Profile name '{name}' is empty or already used")
         self.doc["profiles"][name] = copy.deepcopy(self.doc["profiles"][source])
         self.doc["active_profile"] = name
         self.dirty = True

@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QHBoxLayout, QHeade
                                QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 
 from .. import catalog
+from ..i18n import tr
 from .session import ProjectSession
 
 WidgetFactory = Callable[[ProjectSession, bool], QWidget]
@@ -58,6 +59,14 @@ class ChannelEditor(QWidget):
     """Channel table with live rate and frame-size estimates."""
 
     HEADERS = ["ID", "Name", "Period (ms)", "Rate", "X", "Z", "Time", "Bytes/frame"]
+    TIPS = ["Channel number 0..255; KymoStudio shows each ID as its own signal.",
+            "Readable name shown in KymoStudio.",
+            "How often the value is read: 20 ms = 50 times per second. 0 = on every Kymo_Main call.",
+            "Resulting values per second.",
+            "Send an X value as well (point instead of value over time).",
+            "Send a Z value as well (3D point).",
+            "Send the measuring time with each value.",
+            "Bytes per value on the link."]
     FLAGS = {4: "x", 5: "z", 6: "timestamp"}
 
     def __init__(self, session: ProjectSession, guided: bool = False):
@@ -67,7 +76,9 @@ class ChannelEditor(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self.table = QTableWidget(0, len(self.HEADERS))
-        self.table.setHorizontalHeaderLabels(self.HEADERS)
+        self.table.setHorizontalHeaderLabels([tr(h) for h in self.HEADERS])
+        for column, tip in enumerate(self.TIPS):
+            self.table.horizontalHeaderItem(column).setToolTip(tr(tip))
         self.table.setAlternatingRowColors(True)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
@@ -75,9 +86,9 @@ class ChannelEditor(QWidget):
         self.table.itemChanged.connect(self._item_changed)
         layout.addWidget(self.table)
         buttons = QHBoxLayout()
-        self.add_button = QPushButton("Add channel")
-        self.duplicate_button = QPushButton("Duplicate")
-        self.remove_button = QPushButton("Remove")
+        self.add_button = QPushButton(tr("Add channel"))
+        self.duplicate_button = QPushButton(tr("Duplicate"))
+        self.remove_button = QPushButton(tr("Remove"))
         for button, slot in ((self.add_button, self.add_channel),
                              (self.duplicate_button, self.duplicate_channel),
                              (self.remove_button, self.remove_channel)):
@@ -106,7 +117,7 @@ class ChannelEditor(QWidget):
                     continue
                 period = channel.get("period_ms", 0)
                 size = 9 + 4 * sum(bool(channel.get(k)) for k in ("x", "z", "timestamp"))
-                rate = f"{1000.0 / period:.1f} /s" if type(period) is int and period > 0 else "every cycle"
+                rate = f"{1000.0 / period:.1f} /s" if type(period) is int and period > 0 else tr("every cycle")
                 values = [str(channel.get("id", "")), str(channel.get("name", "")), str(period)]
                 for column, text in enumerate(values):
                     item = self.table.item(row, column)
@@ -115,7 +126,7 @@ class ChannelEditor(QWidget):
                 self.table.setItem(row, 3, _readonly(rate))
                 for column, key in self.FLAGS.items():
                     allowed = view.feature(key)
-                    tip = "" if allowed else f"Enable the {key} feature under Telemetry features first."
+                    tip = "" if allowed else tr("Enable the {key} feature under Telemetry features first.", key=key)
                     self.table.setItem(row, column, _bool_item(bool(channel.get(key)), allowed or bool(channel.get(key)), tip))
                 self.table.setItem(row, 7, _readonly(str(size)))
         finally:
@@ -125,11 +136,13 @@ class ChannelEditor(QWidget):
             widget.setEnabled(enabled)
         budget = self.session.doc.get("resources", {}).get("transport_bytes_per_second")
         summary = catalog.section("channels").summary(view) if catalog.section("channels").summary else ""
-        text = f"Estimate: {summary}. Channels with period 0 depend on how often Kymo_Main runs."
+        text = tr("Estimate: {summary}. Channels with period 0 depend on how often Kymo_Main runs.",
+                  summary=summary)
         if isinstance(budget, int) and budget > 0:
             traffic = sum((1000.0 / c["period_ms"]) * (9 + 4 * sum(bool(c.get(k)) for k in ("x", "z", "timestamp")))
                           for c in self.rows if isinstance(c, dict) and type(c.get("period_ms")) is int and c["period_ms"] > 0)
-            text += f" Link load: {traffic / budget * 100:.0f}% of {budget} bytes/s."
+            text += " " + tr("Link load: {load}% of {budget} bytes/s.", load=f"{traffic / budget * 100:.0f}",
+                             budget=budget)
         self.estimate.setText(text)
 
     def _item_changed(self, item: QTableWidgetItem) -> None:
@@ -161,7 +174,7 @@ class ChannelEditor(QWidget):
     def add_channel(self) -> None:
         cid = self._free_id()
         if cid is not None:
-            self.rows.append({"id": cid, "name": f"Channel {cid}", "period_ms": 20,
+            self.rows.append({"id": cid, "name": tr("Channel {id}", id=cid), "period_ms": 20,
                               "x": False, "z": False, "timestamp": False})
             self.session.touch()
 
@@ -192,25 +205,25 @@ class RegistryEditor(QWidget):
         self.kinds = ("function", "scope", "marker") if group == "symbols" else ("main", "task", "isr")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 8, 0, 0)
-        title = QLabel("Symbol dictionary" if group == "symbols" else "Context dictionary")
+        title = QLabel(tr("Symbol dictionary") if group == "symbols" else tr("Context dictionary"))
         title.setObjectName("groupTitle")
         layout.addWidget(title)
-        hint = QLabel("Functions, scopes and markers you instrument with KYMO_TRACE_*; the ID is "
-                      "the symbol argument." if group == "symbols" else
-                      "Tasks and interrupts that record events; the ID is the context argument.")
+        hint = QLabel(tr("Functions, scopes and markers you instrument with KYMO_TRACE_*; the ID is "
+                         "the symbol argument.") if group == "symbols" else
+                      tr("Tasks and interrupts that record events; the ID is the context argument."))
         hint.setObjectName("fieldHelp")
         hint.setWordWrap(True)
         layout.addWidget(hint)
         self.table = QTableWidget(0, 3)
-        self.table.setHorizontalHeaderLabels(["ID", "Name", "Kind"])
+        self.table.setHorizontalHeaderLabels([tr("ID"), tr("Name"), tr("Kind")])
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.table.verticalHeader().setVisible(False)
         self.table.setMaximumHeight(170)
         self.table.itemChanged.connect(self._item_changed)
         layout.addWidget(self.table)
         buttons = QHBoxLayout()
-        self.add_button = QPushButton("Add symbol" if group == "symbols" else "Add context")
-        self.remove_button = QPushButton("Remove")
+        self.add_button = QPushButton(tr("Add symbol") if group == "symbols" else tr("Add context"))
+        self.remove_button = QPushButton(tr("Remove"))
         self.add_button.clicked.connect(self.add_row)
         self.remove_button.clicked.connect(self.remove_row)
         buttons.addWidget(self.add_button)
@@ -292,7 +305,7 @@ class ReviewPanel(QWidget):
         self.summary.setWordWrap(True)
         self.summary.setTextFormat(Qt.TextFormat.RichText)
         layout.addWidget(self.summary)
-        problems_title = QLabel("Open problems")
+        problems_title = QLabel(tr("Open problems"))
         problems_title.setObjectName("groupTitle")
         layout.addWidget(problems_title)
         self.problems = QListWidget()
@@ -301,8 +314,8 @@ class ReviewPanel(QWidget):
         self.problems.itemDoubleClicked.connect(self._open_problem)
         layout.addWidget(self.problems)
         buttons = QHBoxLayout()
-        self.preview_button = QPushButton("Preview generated files")
-        self.generate_button = QPushButton("Generate configuration")
+        self.preview_button = QPushButton(tr("Preview generated files"))
+        self.generate_button = QPushButton(tr("Generate configuration"))
         self.generate_button.setObjectName("primaryButton")
         self.preview_button.clicked.connect(self.show_preview)
         self.generate_button.clicked.connect(self.generate)
@@ -313,7 +326,7 @@ class ReviewPanel(QWidget):
         self.output = QPlainTextEdit()
         self.output.setReadOnly(True)
         self.output.setObjectName("preview")
-        self.output.setPlaceholderText("The generated files and their changes appear here.")
+        self.output.setPlaceholderText(tr("The generated files and their changes appear here."))
         layout.addWidget(self.output, 1)
         self.refresh()
 
@@ -322,21 +335,35 @@ class ReviewPanel(QWidget):
         rows = []
         for section in catalog.sections():
             if section.summary and section.is_visible(view):
-                rows.append(f"<tr><td><b>{section.title}</b></td><td>{section.summary(view)}</td></tr>")
-        macros = ", ".join(f"{name}={value}" for name, value in self.session.effective_macros())
-        self.summary.setText("<table cellspacing='6'>" + "".join(rows) + "</table>"
-                             f"<p><span style='color:#5b6472'>Generated settings:</span> <code>{macros}</code></p>")
+                rows.append(f"<tr><td style='padding-right:18px'><b>{tr(section.title)}</b></td>"
+                            f"<td>{section.summary(view)}</td></tr>")
+        cells = []
+        for name, value in self.session.effective_macros():
+            if name == "KYMO_MAX_CHANNELS":
+                cells.append(f"<td><code>{name} = {value}</code></td>")
+            elif value:
+                cells.append(f"<td><span style='color:#1e7a3c'>✓</span> <code>{name}</code></td>")
+            else:
+                cells.append(f"<td style='color:#9aa1ad'>– <code>{name}</code></td>")
+        columns = 3
+        macro_rows = "".join("<tr>" + "".join(cells[i:i + columns]) + "</tr>"
+                             for i in range(0, len(cells), columns))
+        self.summary.setText(
+            "<table cellspacing='0' cellpadding='4'>" + "".join(rows) + "</table>"
+            f"<p style='margin-top:14px'><b>{tr('Generated settings')}</b> "
+            f"<span style='color:#5b6472'>({tr('✓ compiled in, – left out')})</span></p>"
+            "<table cellspacing='0' cellpadding='4'>" + macro_rows + "</table>")
         self.problems.clear()
         for diagnostic in self.session.diagnostics():
             owner = catalog.section_for_path(diagnostic.path, self.session.profile)
             prefix = "✖" if diagnostic.severity == "error" else "⚠"
-            where = owner.title if owner else diagnostic.path
-            item = QListWidgetItem(f"{prefix} {where}: {diagnostic.message}" +
-                                   (f" — {diagnostic.suggestion}" if diagnostic.suggestion else ""))
+            where = tr(owner.title) if owner else diagnostic.path
+            message, suggestion = diagnostic.localized()
+            item = QListWidgetItem(f"{prefix} {where}: {message}" + (f" — {suggestion}" if suggestion else ""))
             item.setData(Qt.ItemDataRole.UserRole, owner.key if owner else "")
             self.problems.addItem(item)
         if not self.session.diagnostics():
-            self.problems.addItem("✓ No problems found. The configuration can be generated.")
+            self.problems.addItem(tr("✓ No problems found. The configuration can be generated."))
         self.generate_button.setEnabled(not self.session.errors())
 
     def _open_problem(self, item: QListWidgetItem) -> None:
@@ -346,7 +373,7 @@ class ReviewPanel(QWidget):
 
     def show_preview(self) -> None:
         if self.session.errors():
-            self.output.setPlainText("Resolve the open problems first.")
+            self.output.setPlainText(tr("Resolve the open problems first."))
             return
         lines = []
         for name, (state, content) in self.session.preview().items():
@@ -359,14 +386,14 @@ class ReviewPanel(QWidget):
         try:
             snapshot = self.session.generate()
         except (ValueError, OSError) as exc:
-            QMessageBox.critical(self, "Generation failed", str(exc))
+            QMessageBox.critical(self, tr("Generation failed"), str(exc))
             return
-        self.output.setPlainText(
-            f"Generated snapshot:\n{snapshot}\n\nActive selector: "
-            f"{self.session.output_path() / 'active_generation.json'}\n\n"
+        self.output.setPlainText(tr(
+            "Generated snapshot:\n{snapshot}\n\nActive selector: {selector}\n\n"
             "Add the snapshot folder to your include path and define\n"
             "KYMO_USER_CONFIG_HEADER=\"kymo_user_config.h\" for all files, "
-            "or use the generated build helper for your build system.")
+            "or use the generated build helper for your build system.",
+            snapshot=snapshot, selector=self.session.output_path() / "active_generation.json"))
 
 
 register_widget("channels", lambda session, guided: ChannelEditor(session, guided))

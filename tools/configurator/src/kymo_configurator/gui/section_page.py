@@ -6,6 +6,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QFrame, QLabel, QScrollArea, QVBoxLayout, QWidget
 
 from .. import catalog
+from ..i18n import tr
 from .fields import FieldEditor
 from .session import ProjectSession
 from .widgets import create_widget
@@ -27,11 +28,11 @@ class SectionPage(QScrollArea):
         body.setObjectName("sectionBody")
         layout = QVBoxLayout(body)
         layout.setContentsMargins(24, 18, 24, 18)
-        title = QLabel(section.guided_title if guided and section.guided_title else section.title)
+        title = QLabel(tr(section.guided_title if guided and section.guided_title else section.title))
         title.setObjectName("sectionTitle")
         title.setWordWrap(True)
         layout.addWidget(title)
-        intro = QLabel(section.guided_intro if guided and section.guided_intro else section.description)
+        intro = QLabel(tr(section.guided_intro if guided and section.guided_intro else section.description))
         intro.setObjectName("sectionIntro")
         intro.setWordWrap(True)
         layout.addWidget(intro)
@@ -46,11 +47,12 @@ class SectionPage(QScrollArea):
             frame = QFrame()
             frame.setObjectName("groupFrame")
             group_layout = QVBoxLayout(frame)
-            heading = QLabel(group.title)
+            heading = QLabel(tr(group.title))
             heading.setObjectName("groupTitle")
             group_layout.addWidget(heading)
-            if group.description:
-                note = QLabel(group.description)
+            description = group.guided_description if guided and group.guided_description else group.description
+            if description:
+                note = QLabel(tr(description))
                 note.setObjectName("fieldHelp")
                 note.setWordWrap(True)
                 group_layout.addWidget(note)
@@ -70,8 +72,8 @@ class SectionPage(QScrollArea):
         if guided:
             hidden = sum(1 for g in section.groups for f in g.fields if f.advanced or g.advanced)
             if hidden:
-                more = QLabel(f"{hidden} advanced setting(s) keep their defaults here; "
-                              "the professional mode shows all of them.")
+                more = QLabel(tr("{count} rarely needed setting(s) are hidden here and keep safe "
+                                 "defaults. The professional mode shows them.", count=hidden))
                 more.setObjectName("fieldReason")
                 more.setWordWrap(True)
                 layout.addWidget(more)

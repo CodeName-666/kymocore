@@ -17,17 +17,17 @@ python -m venv .venv-configurator
 
 ## Zwei Arbeitsweisen
 
-- **Geführte Einrichtung** (`gui --mode guided`): fragt zuerst nach dem Ziel (Live-Werte,
-  XY/XYZ-Daten mit Zeit oder Execution-Tracing) und führt dann Schritt für Schritt durch
+- **Geführte Einrichtung** (`gui --mode guided`): fragt zuerst nach dem Ziel (Werte über der Zeit
+  sind immer dabei; X/Y- bzw. X/Y/Z-Punkte und Execution-Tracing lassen sich dazu ankreuzen) und führt dann Schritt für Schritt durch
   Kanäle, Callbacks, optional Tracing und Ausgabe. Fortgeschrittene Optionen behalten
   sichere Defaults; ein Schritt mit offenen Problemen lässt sich nicht vorwärts verlassen.
 - **Profi-Modus** (`gui --mode professional`): alle Einstellungen auf einmal, nach Themen
   gegliedert, mit Live-Status je Thema (✓/⚠/✖), Problemen direkt am Feld, einer
   Prüfseite mit den effektiven Makros und einer Vorschau der erzeugten Dateien.
 
-Ohne `--mode` bietet eine Startseite beide an. Beide Modi bearbeiten dasselbe Projekt,
+Ohne `--mode` bietet eine Startseite beide an. Die Oberfläche gibt es auf Englisch und Deutsch: `--lang en|de` oder die Sprachauswahl in der Werkzeugleiste (wird gemerkt); ohne Auswahl gilt die Systemsprache. Auch die Prüfmeldungen erscheinen in der Oberfläche in der gewählten Sprache; CLI- und `--json`-Ausgabe bleiben englisch. Beide Modi bearbeiten dasselbe Projekt,
 ein Wechsel ist jederzeit möglich. Jede Einstellung zeigt eine verständliche Erklärung und
-das betroffene C-Makro, Konfigurationsfeld oder die Funktionssignatur.
+das betroffene C-Makro, Konfigurationsfeld oder die Funktionssignatur (in der geführten Einrichtung als Tooltip, damit Einsteiger nicht von Makronamen abgelenkt werden).
 
 Für die GUI zusätzlich `pip install -e "tools/configurator[gui]"` ausführen. Unterstützt wird PySide6 `>=6.8.3,<6.10`; getestet wurde hier Python 3.12.9 mit PySide6 6.9.3.
 
