@@ -42,6 +42,8 @@ class FieldEditor(QWidget):
         if field.kind == "bool":
             header.addWidget(self.input)
         header.addWidget(self.title, 1)
+        self.need = QLabel("")
+        header.addWidget(self.need, 0, Qt.AlignmentFlag.AlignRight)
         if field.target and guided:
             self.title.setToolTip(tr("Technical detail: {target}", target=field.target))
         elif field.target:
@@ -57,6 +59,13 @@ class FieldEditor(QWidget):
         self.help.setObjectName("fieldHelp")
         self.help.setWordWrap(True)
         layout.addWidget(self.help)
+        self.example = QLabel("")
+        self.example.setObjectName("codeExample")
+        self.example.setTextFormat(Qt.TextFormat.PlainText)
+        self.example.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.example.setToolTip(tr("Example of the function in your own code; the name follows your entry."))
+        layout.addWidget(self.example)
+        self.example.setVisible(bool(field.example))
         self.reason = QLabel("")
         self.reason.setObjectName("fieldReason")
         self.reason.setWordWrap(True)
@@ -210,6 +219,16 @@ class FieldEditor(QWidget):
         self.title.setEnabled(enabled)
         self.reason.setText("" if enabled else tr(self.field.requires))
         self.reason.setVisible(not enabled and bool(self.field.requires))
+        required = bool(self.field.need(view)) if self.field.need is not None else None
+        self.need.setText(tr("Required") if required else tr("Optional"))
+        self.need.setObjectName("needRequired" if required else "needOptional")
+        self.need.setStyleSheet("")  # re-apply the window style for the new object name
+        self.need.setVisible(enabled and required is not None)
+        if self.field.example:
+            name = str(self.field.value(view) or self.field.placeholder or "my_function")
+            self.example.setText(tr("In your code, for example:") + "\n" +
+                                 self.field.example.replace("{name}", name))
+            self.example.setVisible(enabled)
         self.setVisible(self.field.is_visible(view))
         path = self.session.concrete_path(self.field)
         problems = [d for d in self.session.diagnostics() if d.path == path]

@@ -39,10 +39,13 @@ def diagnostic_templates() -> set[str]:
 
     tree = ast.parse((SOURCE / "validation.py").read_text(encoding="utf-8"))
     for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "add":
+        name = getattr(node.func, "id", "") if isinstance(node, ast.Call) else ""
+        if name == "add":
             texts = node.args[2:4] + [k.value for k in node.keywords if k.arg == "suggestion"]
             for text in texts:
                 found.update(strings(text))
+        elif name == "Diagnostic" and isinstance(node.args[3], ast.Constant):
+            found.add(node.args[3].value)
     return found
 
 
@@ -82,6 +85,9 @@ class GermanTranslationTests(unittest.TestCase):
                 "ESP32 + FreeRTOS"}
         missing = sorted(t for t in all_texts() if t not in DE and t not in same)
         self.assertEqual(missing, [])
+
+    def test_no_stale_translations(self):
+        self.assertEqual(sorted(set(DE) - all_texts()), [])
 
     def test_placeholders_match(self):
         for english, german in DE.items():

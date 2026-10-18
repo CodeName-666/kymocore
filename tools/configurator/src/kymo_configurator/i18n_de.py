@@ -34,8 +34,6 @@ DE: dict[str, str] = {
         "Das neue Profil beginnt als Kopie von '{name}'.\nDanach kannst du es ändern, ohne das Original "
         "zu beeinflussen.\n\nName (z. B. production):",
     "A profile named '{name}' already exists.": "Ein Profil mit dem Namen '{name}' gibt es schon.",
-    "Guided": "Geführt",
-    "Professional": "Profi",
     "unsaved project": "ungespeichertes Projekt",
     "ready to generate": "bereit zum Erzeugen",
     "{count} problem(s) to fix": "{count} Problem(e) zu beheben",
@@ -314,25 +312,6 @@ DE: dict[str, str] = {
         "KymoCore kennt deine Hardware nicht. Du schreibst ein paar kleine Funktionen und trägst hier ihre "
         "Namen ein; die erzeugten Dateien rufen sie auf. Noch nicht geschrieben? Nimm die grau "
         "vorgeschlagenen Namen: Der Befehl 'init-port' erzeugt eine Startdatei mit genau diesen Funktionen.",
-    "Clock": "Uhr",
-    "Returns milliseconds since start, e.g. a wrapper around millis().":
-        "Liefert die Millisekunden seit dem Start, z. B. ein Wrapper um millis().",
-    "Name of a function in your code that returns the milliseconds since start. On Arduino it simply "
-    "returns millis().":
-        "Name einer Funktion in deinem Code, die die Millisekunden seit dem Start liefert. Auf Arduino "
-        "gibt sie einfach millis() zurück.",
-    "Read a measurement": "Messwert lesen",
-    "Fills the sample for the requested channel ID and returns 1, or 0 to skip.":
-        "Füllt den Messwert für die angefragte Kanal-ID und liefert 1, oder 0 zum Überspringen.",
-    "Name of the function that reads one measurement. KymoCore calls it with a channel number; your "
-    "function fills in the value, e.g. a sensor reading.":
-        "Name der Funktion, die einen Messwert liest. KymoCore ruft sie mit einer Kanalnummer auf; deine "
-        "Funktion trägt den Wert ein, z. B. einen Sensorwert.",
-    "Send bytes": "Bytes senden",
-    "Hands frame bytes to UART/USB/TCP and returns how many were accepted.":
-        "Übergibt Frame-Bytes an UART/USB/TCP und liefert, wie viele angenommen wurden.",
-    "Name of the function that sends bytes to the PC, e.g. with Serial.write() on Arduino.":
-        "Name der Funktion, die Bytes an den PC sendet, z. B. mit Serial.write() auf Arduino.",
     "Not used: telemetry goes through the shared trace link.":
         "Nicht verwendet: Die Telemetrie läuft über die gemeinsame Trace-Verbindung.",
     "Needs the telemetry runtime.": "Braucht die Telemetrie-Laufzeit.",
@@ -345,44 +324,15 @@ DE: dict[str, str] = {
         "Dann ist eine Belegt-Funktion nötig, damit KymoCore den Frame nicht überschreibt, während er "
         "noch gesendet wird.",
     "Tick if your driver sends in the background (DMA, many USB stacks) and still uses the bytes after "
-    "your send function returned. Then the 'Transport busy' function below is needed too. For a plain "
+    "your send function returned. Then the 'Busy check' function below is needed too. For a plain "
     "Serial.write() untick it.":
         "Hake das an, wenn dein Treiber im Hintergrund sendet (DMA, viele USB-Stacks) und die Bytes noch "
-        "nutzt, nachdem deine Sendefunktion zurückgekehrt ist. Dann wird auch die Funktion 'Übertragung "
-        "belegt' darunter gebraucht. Für ein einfaches Serial.write() nimm den Haken weg.",
-    "Transport busy": "Übertragung belegt",
-    "Returns nonzero while the driver still owns the last frame.":
-        "Liefert ungleich 0, solange der Treiber den letzten Frame noch benutzt.",
-    "Only needed when the box above is ticked: a function that returns 1 while the driver is still "
-    "sending, otherwise 0.":
-        "Nur nötig, wenn das Kästchen darüber angehakt ist: eine Funktion, die 1 liefert, solange der "
-        "Treiber noch sendet, sonst 0.",
-    "Transport service (optional)": "Übertragungsdienst (optional)",
-    "Called once per cycle to keep a connection alive, e.g. a network poll.":
-        "Wird einmal pro Zyklus aufgerufen, um eine Verbindung am Leben zu halten, z. B. ein Netzwerk-Poll.",
-    "Optional. A function KymoCore calls on every cycle, e.g. to keep a WiFi connection alive. Leave "
-    "empty if you do not need it.":
-        "Optional. Eine Funktion, die KymoCore in jedem Zyklus aufruft, z. B. um eine WLAN-Verbindung am "
-        "Leben zu halten. Lass das Feld leer, wenn du sie nicht brauchst.",
-    "Context pointers": "Kontextzeiger",
-    "Leave empty when your functions use globals.": "Leer lassen, wenn deine Funktionen globale Variablen nutzen.",
-    "Clock context object": "Kontextobjekt der Uhr",
-    "Global object passed to the clock as user.": "Globales Objekt, das der Uhr als user übergeben wird.",
-    "Sample context object": "Kontextobjekt fürs Lesen",
-    "Global object passed to sample as user.": "Globales Objekt, das sample als user übergeben wird.",
-    "Transport context object": "Kontextobjekt der Übertragung",
-    "Global object passed to write, busy and service as user.":
-        "Globales Objekt, das write, busy und service als user übergeben wird.",
+        "nutzt, nachdem deine Sendefunktion zurückgekehrt ist. Dann wird auch die Funktion 'Belegt-Prüfung' "
+        "darunter gebraucht. Für ein einfaches Serial.write() nimm den Haken weg.",
     "C++ push sender": "C++-Sender",
     "KymoStream object": "KymoStream-Objekt",
-    "Name of your KymoStream instance that sends the bytes.":
-        "Name deiner KymoStream-Instanz, die die Bytes sendet.",
-    "Name of the KymoStream object in your code that the C++ sender writes to.":
-        "Name des KymoStream-Objekts in deinem Code, in das der C++-Sender schreibt.",
     "Enable the C++ push sender.": "Schalte den C++-Sender ein.",
     "Millisecond clock": "Millisekunden-Uhr",
-    "No-argument function returning milliseconds, used for C++ timestamps.":
-        "Funktion ohne Argumente, die Millisekunden liefert; für C++-Zeitstempel.",
     "Needs the C++ sender and timestamps.": "Braucht den C++-Sender und Zeitstempel.",
     "Send timestamps by default": "Standardmäßig Zeitstempel senden",
     "Initial value of KymoSender::setTimestampEnabled.": "Startwert von KymoSender::setTimestampEnabled.",
@@ -508,13 +458,9 @@ DE: dict[str, str] = {
     "Returns nonzero while the driver owns the frame.": "Liefert ungleich 0, solange der Treiber den Frame benutzt.",
     "Only needed with background sending: returns 1 while still sending.":
         "Nur bei Senden im Hintergrund nötig: liefert 1, solange noch gesendet wird.",
-    "Current core (optional)": "Aktueller Kern (optional)",
     "Empty means core 0.": "Leer bedeutet Kern 0.",
-    "Current task (optional)": "Aktueller Task (optional)",
     "Empty means unknown; used as interrupted context.": "Leer bedeutet unbekannt; dient als unterbrochener Kontext.",
-    "Critical section enter (optional)": "Kritischen Abschnitt betreten (optional)",
     "Needed when several tasks or ISRs record.": "Nötig, wenn mehrere Tasks oder ISRs aufzeichnen.",
-    "Critical section exit (optional)": "Kritischen Abschnitt verlassen (optional)",
     "Must be set together with enter.": "Muss zusammen mit dem Betreten gesetzt werden.",
     "Symbol dictionary": "Symbolverzeichnis",
     "Functions, scopes and markers you instrument with KYMO_TRACE_*; the ID is the symbol argument.":
@@ -596,6 +542,62 @@ DE: dict[str, str] = {
         "Erzeugter Stand:\n{snapshot}\n\nAktive Auswahl: {selector}\n\nNimm den Ordner des Stands in deinen "
         "Include-Pfad auf und definiere\nKYMO_USER_CONFIG_HEADER=\"kymo_user_config.h\" für alle Dateien, "
         "oder nutze die erzeugte Build-Hilfe für dein Build-System.",
+
+    # --- function fields: names, Required/Optional, code examples -------------------
+    "Required": "Pflicht",
+    "Optional": "Optional",
+    "In your code, for example:": "In deinem Code, zum Beispiel:",
+    "Example of the function in your own code; the name follows your entry.":
+        "Beispiel für die Funktion in deinem eigenen Code; der Name folgt deiner Eingabe.",
+    "Time function": "Zeitfunktion",
+    "Enter the name of your function that returns the milliseconds since start.":
+        "Trag den Namen deiner Funktion ein, die die Millisekunden seit dem Start liefert.",
+    "Measurement function": "Messfunktion",
+    "Enter the name of your function that reads a measurement. KymoCore passes the channel ID; your "
+    "function writes the value into out->value and returns 1 (or 0 to skip this time).":
+        "Trag den Namen deiner Funktion ein, die einen Messwert liest. KymoCore übergibt die Kanal-ID; "
+        "deine Funktion schreibt den Wert nach out->value und liefert 1 (oder 0, um diesmal auszulassen).",
+    "Send function": "Sendefunktion",
+    "Enter the name of your function that sends bytes to the PC and returns how many it accepted.":
+        "Trag den Namen deiner Funktion ein, die Bytes an den PC sendet und liefert, wie viele sie "
+        "angenommen hat.",
+    "Busy check": "Belegt-Prüfung",
+    "Enter the name of your function that returns 1 while the driver is still sending the last data, "
+    "otherwise 0. Only needed when the box above is ticked.":
+        "Trag den Namen deiner Funktion ein, die 1 liefert, solange der Treiber die letzten Daten noch "
+        "sendet, sonst 0. Nur nötig, wenn das Kästchen darüber angehakt ist.",
+    "Service function": "Dienstfunktion",
+    "Name of a function KymoCore calls on every cycle, e.g. to keep a WiFi connection alive. Leave empty "
+    "if you do not need it.":
+        "Name einer Funktion, die KymoCore in jedem Zyklus aufruft, z. B. um eine WLAN-Verbindung am Leben "
+        "zu halten. Lass das Feld leer, wenn du sie nicht brauchst.",
+    "Extra data for your functions": "Zusatzdaten für deine Funktionen",
+    "Optional, usually left empty. Every function above receives a parameter void *user. If a function "
+    "needs to know which object to work with, e.g. which of two serial ports, enter that object's name "
+    "here and KymoCore passes a pointer to it as user. If your functions simply use globals such as "
+    "Serial, leave everything empty.":
+        "Optional, meist leer. Jede Funktion oben bekommt einen Parameter void *user. Muss eine Funktion "
+        "wissen, mit welchem Objekt sie arbeiten soll, z. B. mit welcher von zwei seriellen Schnittstellen, "
+        "trag hier den Namen dieses Objekts ein; KymoCore übergibt dann einen Zeiger darauf als user. "
+        "Nutzen deine Funktionen einfach globale Objekte wie Serial, bleibt alles leer.",
+    "Object for the time function": "Objekt für die Zeitfunktion",
+    "Name of a global object that KymoCore passes to your time function as user.":
+        "Name eines globalen Objekts, das KymoCore deiner Zeitfunktion als user übergibt.",
+    "Object for the measurement function": "Objekt für die Messfunktion",
+    "Name of a global object that KymoCore passes to your measurement function as user.":
+        "Name eines globalen Objekts, das KymoCore deiner Messfunktion als user übergibt.",
+    "Object for the send functions": "Objekt für die Sendefunktionen",
+    "Name of a global object that KymoCore passes to your send, busy and service functions as user.":
+        "Name eines globalen Objekts, das KymoCore deiner Sende-, Belegt- und Dienstfunktion als user "
+        "übergibt.",
+    "Name of your object derived from KymoStream that the C++ sender writes to.":
+        "Name deines von KymoStream abgeleiteten Objekts, in das der C++-Sender schreibt.",
+    "Name of your function without arguments that returns milliseconds; used for C++ timestamps.":
+        "Name deiner Funktion ohne Argumente, die Millisekunden liefert; für C++-Zeitstempel.",
+    "Current core": "Aktueller Kern",
+    "Current task": "Aktueller Task",
+    "Critical section enter": "Kritischen Abschnitt betreten",
+    "Critical section exit": "Kritischen Abschnitt verlassen",
 
     # --- validation messages (templates from validation.py; CLI output stays English) ---
     "Project root must be an object": "Die Projektdatei muss ein Objekt enthalten",

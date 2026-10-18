@@ -30,6 +30,11 @@ QMainWindow, #sectionBody, QStackedWidget { background: #f7f8fa; }
 #notice { background: #fff5d6; border: 1px solid #ecd58b; border-radius: 6px; padding: 8px; color: #5a4a12; }
 #preview { font-family: monospace; font-size: 12px; }
 #mainToolbar { background: white; border-bottom: 1px solid #d9dde4; padding: 4px 10px; spacing: 6px; }
+#needRequired { font-size: 11px; font-weight: 600; color: #8a1c13; background: #fde8e6;
+                border-radius: 4px; padding: 1px 6px; }
+#needOptional { font-size: 11px; color: #3f5b3a; background: #e6f2e3; border-radius: 4px; padding: 1px 6px; }
+#codeExample { font-family: Consolas, monospace; font-size: 12px; color: #1f2430; background: #f3f5f9;
+               border: 1px solid #e0e3e9; border-radius: 6px; padding: 6px 10px; margin-top: 2px; }
 #toolbarButton { border: 1px solid #c3c9d4; border-radius: 6px; padding: 3px 10px; background: white; }
 #toolbarButton:hover { background: #eef0f4; }
 #segmentLeft, #segmentRight { background: white; color: #1f2430; border: 1px solid #c3c9d4; padding: 4px 16px; }

@@ -126,6 +126,10 @@ class Field:
     placeholder: str = ""
     guided_help: str = ""
     """Beginner wording shown instead of ``help`` in guided mode (says when it is needed)."""
+    example: str = ""
+    """Code the user writes for this binding; ``{name}`` is replaced by the entered name."""
+    need: Predicate | None = None
+    """True: shown as required, False: shown as optional, None: no mark."""
 
     def value(self, view: View) -> Any:
         return view.get(self.path, self.default)
@@ -254,6 +258,18 @@ def _runtime_direct_write(view: View) -> bool:
     return view.feature("runtime") and not shared
 
 
+def _never(view: View) -> bool:
+    return False
+
+
+def _busy_needed(view: View) -> bool:
+    return _runtime_direct_write(view) and bool(view.get(("bindings", "write_borrows_buffer"), True))
+
+
+def _trace_busy_needed(view: View) -> bool:
+    return view.trace() and bool(view.get((PROFILE, "trace", "transport", "write_borrows_buffer"), False))
+
+
 def _feature(key: str, label: str, help_text: str, macro: str, advanced: bool = False,
              enabled_when: Predicate | None = _on, guided: str = "") -> Field:
     return Field(f"features.{key}", (PROFILE, "features", key), label, help_text,
@@ -264,18 +280,20 @@ def _feature(key: str, label: str, help_text: str, macro: str, advanced: bool = 
 
 def _binding(key: str, label: str, help_text: str, target: str, advanced: bool = False,
              enabled_when: Predicate | None = _runtime, requires: str = "Needs the telemetry runtime.",
-             placeholder: str = "", guided: str = "") -> Field:
+             placeholder: str = "", guided: str = "", example: str = "",
+             need: Predicate | None = None) -> Field:
     return Field(f"bindings.{key}", ("bindings", key), label, help_text, kind="identifier",
                  default="", target=target, advanced=advanced, enabled_when=enabled_when,
-                 requires=requires, placeholder=placeholder, guided_help=guided)
+                 requires=requires, placeholder=placeholder, guided_help=guided, example=example,
+                 need=need)
 
 
 def _trace_binding(key: str, label: str, help_text: str, target: str, advanced: bool = False,
-                   guided: str = "") -> Field:
+                   guided: str = "", example: str = "", need: Predicate | None = None) -> Field:
     return Field(f"trace.bindings.{key}", (PROFILE, "trace", "bindings", key), label, help_text,
                  kind="identifier", default="", target=target, advanced=advanced,
                  enabled_when=_trace_requested, requires="Enable trace recording first.",
-                 guided_help=guided)
+                 guided_help=guided, example=example, need=need)
 
 
 def _trace_int(key: tuple[str, ...], label: str, help_text: str, low: int, high: int, default: int,
@@ -452,24 +470,29 @@ SECTIONS: list[Section] = [
         "the generated configuration calls them. Their implementations stay in your project.",
         groups=(
             Group("Required functions", (
-                _binding("clock", "Clock", "Returns milliseconds since start, e.g. a wrapper around millis().",
-                         "uint32_t clock(void *user)", placeholder="kymo_port_clock_ms",
-                         guided="Name of a function in your code that returns the milliseconds since start. "
-                                "On Arduino it simply returns millis()."),
-                _binding("sample", "Read a measurement",
-                         "Fills the sample for the requested channel ID and returns 1, or 0 to skip.",
+                _binding("clock", "Time function",
+                         "Enter the name of your function that returns the milliseconds since start.",
+                         "uint32_t clock(void *user)", placeholder="kymo_port_clock_ms", need=_runtime,
+                         example="uint32_t {name}(void *user)\n{\n    return millis();\n}"),
+                _binding("sample", "Measurement function",
+                         "Enter the name of your function that reads a measurement. KymoCore passes the "
+                         "channel ID; your function writes the value into out->value and returns 1 "
+                         "(or 0 to skip this time).",
                          "uint8_t sample(void *user, uint8_t id, KymoSample *out)",
-                         placeholder="kymo_port_sample",
-                         guided="Name of the function that reads one measurement. KymoCore calls it with "
-                                "a channel number; your function fills in the value, e.g. a sensor reading."),
-                _binding("write", "Send bytes",
-                         "Hands frame bytes to UART/USB/TCP and returns how many were accepted.",
+                         placeholder="kymo_port_sample", need=_runtime,
+                         example="uint8_t {name}(void *user, uint8_t id, KymoSample *out)\n{\n"
+                                 "    uint8_t ok = 0;\n    if (id == 0) {    /* channel ID from the channel table */\n"
+                                 "        out->value = analogRead(A0);\n        ok = 1;\n    }\n"
+                                 "    return ok;\n}"),
+                _binding("write", "Send function",
+                         "Enter the name of your function that sends bytes to the PC and returns how many "
+                         "it accepted.",
                          "uint8_t write(void *user, const uint8_t *bytes, uint8_t length)",
                          enabled_when=_runtime_direct_write,
                          requires="Not used: telemetry goes through the shared trace link.",
-                         placeholder="kymo_port_write",
-                         guided="Name of the function that sends bytes to the PC, e.g. with Serial.write() "
-                                "on Arduino."),
+                         placeholder="kymo_port_write", need=_runtime_direct_write,
+                         example="uint8_t {name}(void *user, const uint8_t *bytes, uint8_t length)\n{\n"
+                                 "    return (uint8_t)Serial.write(bytes, length);\n}"),
             ), guided_description="KymoCore does not know your hardware. You write a few small functions "
                                   "and enter their names here; the generated files call them. Not written "
                                   "yet? Use the grey suggested names: the 'init-port' command creates a "
@@ -481,37 +504,53 @@ SECTIONS: list[Section] = [
                       "while it is still being sent.", default=True, enabled_when=_runtime,
                       requires="Needs the telemetry runtime.", target="KymoConfig.busy",
                       guided_help="Tick if your driver sends in the background (DMA, many USB stacks) and "
-                                  "still uses the bytes after your send function returned. Then the 'Transport "
-                                  "busy' function below is needed too. For a plain Serial.write() untick it."),
-                _binding("busy", "Transport busy",
-                         "Returns nonzero while the driver still owns the last frame.",
-                         "uint8_t busy(void *user)", placeholder="kymo_port_busy",
-                         guided="Only needed when the box above is ticked: a function that returns 1 while "
-                                "the driver is still sending, otherwise 0."),
-                _binding("service", "Transport service (optional)",
-                         "Called once per cycle to keep a connection alive, e.g. a network poll.",
-                         "void service(void *user)", placeholder="kymo_port_service",
-                         guided="Optional. A function KymoCore calls on every cycle, e.g. to keep a WiFi "
-                                "connection alive. Leave empty if you do not need it."),
-            ), guided_description="How the bytes leave your microcontroller."),
-            Group("Context pointers", (
-                _binding("clock_user", "Clock context object", "Global object passed to the clock as user.",
-                         "KymoConfig.clock_user", advanced=True),
-                _binding("sample_user", "Sample context object", "Global object passed to sample as user.",
-                         "KymoConfig.sample_user", advanced=True),
-                _binding("transport_user", "Transport context object",
-                         "Global object passed to write, busy and service as user.",
-                         "KymoConfig.transport_user", advanced=True),
-            ), advanced=True, description="Leave empty when your functions use globals."),
+                                  "still uses the bytes after your send function returned. Then the 'Busy "
+                                  "check' function below is needed too. For a plain Serial.write() untick it."),
+                _binding("busy", "Busy check",
+                         "Enter the name of your function that returns 1 while the driver is still sending "
+                         "the last data, otherwise 0. Only needed when the box above is ticked.",
+                         "uint8_t busy(void *user)", placeholder="kymo_port_busy", need=_busy_needed,
+                         example="uint8_t {name}(void *user)\n{\n    return uart_dma_busy ? 1 : 0;\n}"),
+                _binding("service", "Service function",
+                         "Name of a function KymoCore calls on every cycle, e.g. to keep a WiFi connection "
+                         "alive. Leave empty if you do not need it.",
+                         "void service(void *user)", placeholder="kymo_port_service", need=_never,
+                         example="void {name}(void *user)\n{\n    wifi_client.poll();\n}"),
+            ), description="How the bytes leave your microcontroller."),
+            Group("Extra data for your functions", (
+                _binding("clock_user", "Object for the time function",
+                         "Name of a global object that KymoCore passes to your time function as user.",
+                         "KymoConfig.clock_user", advanced=True, need=_never, placeholder="my_timer",
+                         example="static MyTimer {name};    /* your function receives &{name} as user */"),
+                _binding("sample_user", "Object for the measurement function",
+                         "Name of a global object that KymoCore passes to your measurement function as user.",
+                         "KymoConfig.sample_user", advanced=True, need=_never, placeholder="my_sensors",
+                         example="static MySensors {name};    /* your function receives &{name} as user */"),
+                _binding("transport_user", "Object for the send functions",
+                         "Name of a global object that KymoCore passes to your send, busy and service "
+                         "functions as user.",
+                         "KymoConfig.transport_user", advanced=True, need=_never, placeholder="my_uart",
+                         example="static MyUart {name};    /* your functions receive &{name} as user */"),
+            ), advanced=True,
+               description="Optional, usually left empty. Every function above receives a parameter "
+                           "void *user. If a function needs to know which object to work with, e.g. which "
+                           "of two serial ports, enter that object's name here and KymoCore passes a "
+                           "pointer to it as user. If your functions simply use globals such as Serial, "
+                           "leave everything empty."),
             Group("C++ push sender", (
                 _binding("cpp_stream", "KymoStream object",
-                         "Name of your KymoStream instance that sends the bytes.", "KymoStream &",
-                         enabled_when=_cpp, requires="Enable the C++ push sender.",
-                         guided="Name of the KymoStream object in your code that the C++ sender writes to."),
+                         "Name of your object derived from KymoStream that the C++ sender writes to.",
+                         "KymoStream &", enabled_when=_cpp, requires="Enable the C++ push sender.",
+                         need=_cpp,
+                         example="class SerialStream : public KymoStream {\npublic:\n"
+                                 "    size_t write(const uint8_t *data, size_t length) override\n    {\n"
+                                 "        return Serial.write(data, length);\n    }\n};\n\nSerialStream {name};"),
                 _binding("cpp_clock", "Millisecond clock",
-                         "No-argument function returning milliseconds, used for C++ timestamps.",
+                         "Name of your function without arguments that returns milliseconds; used for "
+                         "C++ timestamps.",
                          "uint32_t clock(void)", enabled_when=_cpp_time,
-                         requires="Needs the C++ sender and timestamps."),
+                         requires="Needs the C++ sender and timestamps.", need=_cpp_time,
+                         example="uint32_t {name}(void)\n{\n    return millis();\n}"),
                 Field("bindings.cpp_timestamp_default", ("bindings", "cpp_timestamp_default"),
                       "Send timestamps by default", "Initial value of KymoSender::setTimestampEnabled.",
                       default=False, enabled_when=_cpp_time, requires="Needs the C++ sender and timestamps.",
@@ -628,27 +667,37 @@ SECTIONS: list[Section] = [
             Group("Trace functions", (
                 _trace_binding("clock", "Trace clock", "Returns the free-running tick counter.",
                                "uint64_t clock(void *user)",
-                               guided="Name of your function that returns the trace clock count."),
+                               guided="Name of your function that returns the trace clock count.", need=_trace,
+                               example="uint64_t {name}(void *user)\n{\n    return micros();\n}"),
                 _trace_binding("session_id", "Session ID", "Returns a new random ID per boot.",
                                "uint64_t session(void)",
                                guided="Name of a function that returns a random number, new on every start, "
-                                      "so KymoStudio can tell recordings apart."),
+                                      "so KymoStudio can tell recordings apart.", need=_trace,
+                               example="uint64_t {name}(void)\n{\n"
+                                       "    return ((uint64_t)random() << 32) | (uint32_t)random();\n}"),
                 _trace_binding("trace_write", "Send trace bytes", "Writes mux frames to the link.",
                                "size_t write(void *user, const uint8_t *bytes, size_t length)",
-                               guided="Name of the function that sends the trace bytes to the PC."),
+                               guided="Name of the function that sends the trace bytes to the PC.", need=_trace,
+                               example="size_t {name}(void *user, const uint8_t *bytes, size_t length)\n{\n"
+                                       "    return Serial.write(bytes, length);\n}"),
                 _trace_binding("transport_busy", "Link busy", "Returns nonzero while the driver owns the frame.",
                                "uint8_t busy(void *user)",
-                               guided="Only needed with background sending: returns 1 while still sending."),
-                _trace_binding("core_id", "Current core (optional)", "Empty means core 0.",
-                               "uint8_t core_id(void *user)", advanced=True),
-                _trace_binding("current_context", "Current task (optional)",
+                               guided="Only needed with background sending: returns 1 while still sending.",
+                               need=_trace_busy_needed,
+                               example="uint8_t {name}(void *user)\n{\n    return uart_dma_busy ? 1 : 0;\n}"),
+                _trace_binding("core_id", "Current core", "Empty means core 0.",
+                               "uint8_t core_id(void *user)", advanced=True, need=_never,
+                               example="uint8_t {name}(void *user)\n{\n    return (uint8_t)xPortGetCoreID();\n}"),
+                _trace_binding("current_context", "Current task",
                                "Empty means unknown; used as interrupted context.",
-                               "uint32_t context(void *user)", advanced=True),
-                _trace_binding("critical_enter", "Critical section enter (optional)",
+                               "uint32_t context(void *user)", advanced=True, need=_never),
+                _trace_binding("critical_enter", "Critical section enter",
                                "Needed when several tasks or ISRs record.", "void enter(void *user)",
-                               advanced=True),
-                _trace_binding("critical_exit", "Critical section exit (optional)",
-                               "Must be set together with enter.", "void exit(void *user)", advanced=True),
+                               advanced=True, need=_never,
+                               example="void {name}(void *user)\n{\n    noInterrupts();\n}"),
+                _trace_binding("critical_exit", "Critical section exit",
+                               "Must be set together with enter.", "void exit(void *user)", advanced=True,
+                               need=_never, example="void {name}(void *user)\n{\n    interrupts();\n}"),
             )),
         ),
         widgets=("symbols", "contexts"),
