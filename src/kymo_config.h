@@ -23,6 +23,7 @@
  * |                       | KYMO_ENABLE_TIMESTAMP       | 0       | Timestamp per sample                    |
  * |                       | KYMO_ENABLE_CRC             | 0       | CRC-8 on outgoing frames                |
  * |                       | KYMO_ENABLE_DECODER         | 0       | Frame decoder on the MCU                |
+ * | 2b. Back channel      | KYMO_ENABLE_PARAMETERS      | 0       | Host writes to registered parameters    |
  * | 3. Execution tracing  | KYMO_ENABLE_TRACE           | 0       | Trace recorder, instrumentation, mux    |
  * |                       | KYMO_ENABLE_TRACE_ISR       | 0       | ISR enter/exit (needs TRACE)            |
  * |                       | KYMO_ENABLE_TRACE_SCHEDULER | 0       | Task switches (needs TRACE_ISR)         |
@@ -30,6 +31,7 @@
  * | 4. Resource sizes     | KYMO_MAX_CHANNELS           | 16      | Telemetry channels per context (1..256) |
  * |                       | KYMO_TRACE_*                | see below | Trace ring, contexts, depths          |
  * |                       | KYMO_MUX_ADMIN_RECORD_MAX   | 512     | Largest queued admin record in bytes    |
+ * |                       | KYMO_MAX_PARAMETERS         | 8       | Parameters per receiver (1..256)        |
  *
  * Profiles only change defaults; every switch can still be set individually:
  * - KYMO_PROFILE_MINIMAL (0): scalar values, no timestamp, no tracing.
@@ -154,6 +156,13 @@
 #define KYMO_ENABLE_DECODER 0
 #endif
 
+/* ---- 2b. Back channel --------------------------------------------------- */
+
+/** @brief Compile the parameter receiver for host writes; requires the decoder; defaults to disabled. */
+#ifndef KYMO_ENABLE_PARAMETERS
+#define KYMO_ENABLE_PARAMETERS 0
+#endif
+
 /* ---- 3. Execution tracing ----------------------------------------------- */
 
 /** @brief Compile the trace recorder, instrumentation and mux; on in the TRACE profile. */
@@ -231,6 +240,14 @@
 #define KYMO_MUX_ADMIN_RECORD_MAX 512u
 #endif
 
+/** @brief Parameters one KymoParamReceiver can hold (1..256).
+ * @details Each parameter costs one bit of pending-readback state inside the receiver;
+ * the parameter table itself is owned by the application.
+ */
+#ifndef KYMO_MAX_PARAMETERS
+#define KYMO_MAX_PARAMETERS 8u
+#endif
+
 /* ---- Validation --------------------------------------------------------- */
 
 #if !KYMO_DETAIL_PASTE(KYMO_DETAIL_VALID_, KYMO_ENABLED) || \
@@ -241,6 +258,7 @@
     !KYMO_DETAIL_PASTE(KYMO_DETAIL_VALID_, KYMO_ENABLE_TIMESTAMP) || \
     !KYMO_DETAIL_PASTE(KYMO_DETAIL_VALID_, KYMO_ENABLE_CRC) || \
     !KYMO_DETAIL_PASTE(KYMO_DETAIL_VALID_, KYMO_ENABLE_DECODER) || \
+    !KYMO_DETAIL_PASTE(KYMO_DETAIL_VALID_, KYMO_ENABLE_PARAMETERS) || \
     !KYMO_DETAIL_PASTE(KYMO_DETAIL_VALID_, KYMO_ENABLE_TRACE) || \
     !KYMO_DETAIL_PASTE(KYMO_DETAIL_VALID_, KYMO_ENABLE_TRACE_ISR) || \
     !KYMO_DETAIL_PASTE(KYMO_DETAIL_VALID_, KYMO_ENABLE_TRACE_SCHEDULER) || \
@@ -264,6 +282,14 @@
 
 #if KYMO_ENABLED && KYMO_ENABLE_TRACE_FLOW && !KYMO_ENABLE_TRACE
 #error "KYMO_ENABLE_TRACE_FLOW requires KYMO_ENABLE_TRACE=1"
+#endif
+
+#if KYMO_ENABLED && KYMO_ENABLE_PARAMETERS && !KYMO_ENABLE_DECODER
+#error "KYMO_ENABLE_PARAMETERS requires KYMO_ENABLE_DECODER=1"
+#endif
+
+#if (KYMO_MAX_PARAMETERS < 1u) || (KYMO_MAX_PARAMETERS > 256u)
+#error "KYMO_MAX_PARAMETERS must be from 1 through 256"
 #endif
 
 #if (KYMO_MAX_CHANNELS < 1u) || (KYMO_MAX_CHANNELS > 256u)
@@ -317,6 +343,9 @@
 
 /** @brief Effective MCU decoder gate. */
 #define KYMO_EFFECTIVE_DECODER (KYMO_ENABLED && KYMO_ENABLE_DECODER)
+
+/** @brief Effective parameter receiver gate (back channel). */
+#define KYMO_EFFECTIVE_PARAMETERS (KYMO_ENABLED && KYMO_ENABLE_PARAMETERS)
 
 /** @brief Effective trace recorder gate. */
 #define KYMO_EFFECTIVE_TRACE (KYMO_ENABLED && KYMO_ENABLE_TRACE)

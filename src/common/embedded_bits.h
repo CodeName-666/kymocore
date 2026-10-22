@@ -152,6 +152,30 @@ static inline uint8_t emb_bitset_set(uint8_t *bits, size_t capacity, size_t inde
     return result;
 }
 
+/**
+ * @brief Clear one bit in a capacity-bounded byte array.
+ *
+ * @details Other bits are preserved. Clearing an unset bit succeeds. Invalid input leaves
+ * storage unchanged. This read/modify/write operation is not atomic across tasks/ISRs.
+ * @param[in,out] bits Writable byte array, or NULL.
+ * @param[in] capacity Actual writable allocation size in bytes.
+ * @param[in] index Zero-based bit index, with LSB-first order inside each byte.
+ * @return One if the index was valid and cleared; zero for NULL/out-of-range input.
+ * @par Usage
+ * emb_bitset_clear(pending, sizeof(pending), index) after handling one pending entry.
+ */
+static inline uint8_t emb_bitset_clear(uint8_t *bits, size_t capacity, size_t index)
+{
+    uint8_t result = 0;
+    size_t byte_index = index / 8u;
+    if ((bits != NULL) && (byte_index < capacity)) {
+        bits[byte_index] = (uint8_t)(bits[byte_index] &
+                                     (uint8_t)~emb_u8_bit((uint8_t)(index % 8u)));
+        result = 1;
+    }
+    return result;
+}
+
 
 /** @} */
 #endif /* EMBEDDED_COMMON_BITS_H */

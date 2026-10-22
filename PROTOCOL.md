@@ -224,6 +224,37 @@ This uses only four CAN data bytes for a float32 measurement. CAN-FD may carry
 an entire v6 binary frame unchanged when X/Z/timestamp or CRC-compatible
 cross-transport framing is required.
 
+## Back channel: host writes to parameters
+
+Since KymoCore 7.1 the host may write registered application parameters
+(`KYMO_ENABLE_PARAMETERS=1`, which requires `KYMO_ENABLE_DECODER=1`). There is no
+new frame type: the host sends an ordinary DATA frame towards the device.
+
+| Direction | Frame | Meaning |
+|---|---|---|
+| Host → device | DATA, CRC required, no X/Z/timestamp; `id` = parameter, `value` = new setting | Write request |
+| Device → host | DATA with the same `id`; `value` = what the parameter now holds; optional timestamp | Readback |
+
+The device applies a write only for a registered ID and a finite value inside the
+parameter's inclusive [minimum, maximum]. An accepted or out-of-range write is
+answered with a readback, so the host sees the value actually in force. Unknown
+IDs, NO_CRC frames, bad CRCs and frames with extra fields get no readback. The
+host treats a missing readback as "not confirmed"; it never assumes success.
+
+Golden vector, host → device, parameter 7 set to 1.0: `a5 5a 40 07 00 00 80 3f 54`.
+
+Parameter IDs share the channel ID space with measurements. Firmware should pick
+IDs its measurement channels do not use, so readbacks are distinguishable.
+
+Transports: Serial/USB, TCP and UDP carry the frame unchanged (UDP replies go to
+the last sender). MQTT publishes it on the configured `tx_topic`. Classic CAN
+cannot carry the 9-byte frame; CAN-FD can.
+
+Reserved for later: an address-based write (parameters derived from an ELF
+symbol table) will use a separate message type in descriptor bits 5..4, so the
+DATA-frame write above keeps its meaning. It must stay limited to memory ranges
+the firmware explicitly allows.
+
 ## Legacy JSON compatibility
 
 KymoStudio continues to accept UTF-8 JSON:

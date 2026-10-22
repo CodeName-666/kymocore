@@ -223,6 +223,7 @@ build_flags =
 | `KYMO_ENABLE_TIMESTAMP` | profile | Timestamp on the wire |
 | `KYMO_ENABLE_CRC` | 0 | Compute outgoing CRC |
 | `KYMO_ENABLE_DECODER` | 0 | Decode complete frames on the MCU |
+| `KYMO_ENABLE_PARAMETERS` | 0 | Host writes to registered parameters, `KymoParam_*` (needs DECODER) |
 | `KYMO_ENABLE_TRACE` | profile | Trace recorder, instrumentation and mux |
 | `KYMO_ENABLE_TRACE_ISR` | profile | ISR events (needs TRACE) |
 | `KYMO_ENABLE_TRACE_SCHEDULER` | profile | Task events (needs TRACE_ISR) |
@@ -237,6 +238,7 @@ build_flags =
 | `KYMO_TRACE_MAX_DEPTH` | 32 | 1–255 |
 | `KYMO_TRACE_MAX_ISR_DEPTH` | 8 | 1–16 |
 | `KYMO_MUX_ADMIN_RECORD_MAX` | 512 | 64–8192 bytes |
+| `KYMO_MAX_PARAMETERS` | 8 | 1–256 parameters per `KymoParamReceiver`, 1 bit each |
 
 Enabling a feature allows a field; each channel's flags select it for that
 channel's frame. XYZ with timestamp uses `KYMO_ALLOWED_FLAGS`, timestamp only

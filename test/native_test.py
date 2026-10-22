@@ -18,7 +18,8 @@ TELEMETRY_SOURCES = ["src/telemetry/kymo_protocol.cpp", "src/telemetry/kymo_runt
                      "src/telemetry/kymo_sender.cpp"]
 FULL_TELEMETRY = ["-DKYMO_PROFILE=KYMO_PROFILE_XYZ", "-DKYMO_ENABLE_CPP=1",
                   "-DKYMO_ENABLE_DECODER=1"]
-PROFILES = ([], ["-DKYMO_PROFILE=KYMO_PROFILE_XYZ"], ["-DKYMO_PROFILE=KYMO_PROFILE_TRACE"],
+PARAMETERS = ["-DKYMO_ENABLE_DECODER=1", "-DKYMO_ENABLE_PARAMETERS=1"]
+PROFILES = ([],["-DKYMO_PROFILE=KYMO_PROFILE_XYZ"], ["-DKYMO_PROFILE=KYMO_PROFILE_TRACE"],
             ["-DKYMO_ENABLED=0"])
 
 
@@ -53,12 +54,22 @@ def main():
                                        ["-DKYMO_MAX_CHANNELS=256"])):
             build_and_run(args.cxx, temp, f"runtime_{index}", "test/runtime_test.cpp",
                           flags, TELEMETRY_SOURCES)
+        param_sources = TELEMETRY_SOURCES + ["src/control/kymo_param.cpp"]
+        for index, flags in enumerate((PARAMETERS, PARAMETERS + ["-DKYMO_ENABLE_CRC=1"],
+                                       PARAMETERS + ["-DKYMO_PROFILE=KYMO_PROFILE_XYZ"],
+                                       PARAMETERS + ["-DKYMO_MAX_PARAMETERS=256"])):
+            build_and_run(args.cxx, temp, f"param_{index}", "test/param_test.cpp",
+                          flags, param_sources)
         probe = temp / "entry.c"
         probe.write_text("#include <KymoCore.h>\nint main(void) { return 0; }\n",
                          encoding="utf-8")
-        for flags in PROFILES:
+        for flags in PROFILES + (PARAMETERS,):
             run([args.cc, "-std=c99", *WARNINGS, *flags, "-Isrc", "-c", probe,
                  "-o", temp / "entry.o"])
+        refused = subprocess.run([args.cc, "-std=c99", "-DKYMO_ENABLE_PARAMETERS=1", "-Isrc",
+                                  "-c", str(probe), "-o", str(temp / "refused.o")],
+                                 cwd=ROOT, capture_output=True, text=True)
+        assert refused.returncode != 0 and "requires KYMO_ENABLE_DECODER" in refused.stderr
         build_and_run(args.cxx, temp, "basic_example", "examples/basic/main.cpp", [],
                       TELEMETRY_SOURCES)
     for script in ("test/trace_core_test.py", "test/compile_out_test.py",

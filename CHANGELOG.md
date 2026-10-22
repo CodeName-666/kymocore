@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased (7.1.0)
+
+- Back channel: `control/kymo_param.h` lets the host write registered float
+  parameters with ordinary CRC-protected DATA frames (`KYMO_ENABLE_PARAMETERS`,
+  needs `KYMO_ENABLE_DECODER`; `KYMO_MAX_PARAMETERS`, default 8). Writes outside
+  [minimum, maximum], unknown IDs, NO_CRC and bad frames are refused. Accepted and
+  out-of-range writes queue a readback that the application sends as normal DATA.
+  Byte-wise reassembly with constant work per byte, no heap, compiled out by default.
+- `emb_bitset_clear` in `common/embedded_bits.h`.
+
 ## 7.0.0 - 2026-10-18
 
 Restructured for a simpler start. The wire format (protocol v6.2, wire version 1)

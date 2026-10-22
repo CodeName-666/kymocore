@@ -44,6 +44,13 @@ int main(void)
     assert(emb_bitset_test(bits, sizeof(bits), 31u) == 1u);
     assert(emb_bitset_set(bits, sizeof(bits), 32u) == 0u);
     assert(memcmp(bits, "\0\0\0\x80", 4u) == 0);
+    assert(emb_bitset_set(bits, sizeof(bits), 30u) == 1u);
+    assert(emb_bitset_clear(bits, sizeof(bits), 31u) == 1u);
+    assert(emb_bitset_test(bits, sizeof(bits), 31u) == 0u);
+    assert(emb_bitset_test(bits, sizeof(bits), 30u) == 1u);
+    assert(emb_bitset_clear(bits, sizeof(bits), 32u) == 0u);
+    assert(emb_bitset_clear(NULL, sizeof(bits), 0u) == 0u);
+    assert(memcmp(bits, "\0\0\0\x40", 4u) == 0);
 
     puts("Common utilities passed");
     return result;
