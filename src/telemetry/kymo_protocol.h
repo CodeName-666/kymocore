@@ -97,6 +97,19 @@ extern "C" {
 #define KYMO_DESCRIPTOR_DATA 0x40u
 
 /**
+ * @brief Descriptor of a parameter control frame (back channel), wire version 1.
+ *
+ * @details Bit 5 set marks a non-DATA message; bits 4..0 select it, and 0x60 is
+ * parameter control. Layout: sync, 0x60, payload length (1..64), payload, CRC-8
+ * over descriptor through payload. The CRC is mandatory. The payload's first byte
+ * is the operation (see kymo_param.h). 0x61 is reserved for a later
+ * address-based write. DATA decoders reject this descriptor.
+ * @par Usage
+ * Used by the parameter receiver; applications normally do not build these frames.
+ */
+#define KYMO_DESCRIPTOR_PARAM 0x60u
+
+/**
  * @brief Descriptor bit indicating a four-byte X coordinate.
  *
  * @details Adds one finite binary32 value before the mandatory Y/value field.

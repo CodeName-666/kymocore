@@ -12,9 +12,9 @@ static float sKp = 1.0f;
 static float sSetpoint = 20.0f;
 static float sGain = 0.5f;
 static const KymoParameter sTable[] = {
-    { 7u, &sKp, 0.0f, 10.0f },
-    { 100u, &sSetpoint, -40.0f, 125.0f },
-    { 101u, &sGain, 0.0f, 1.0f },
+    KYMO_PARAM(7, sKp, 0.0f, 10.0f, ""),
+    KYMO_PARAM(100, sSetpoint, -40.0f, 125.0f, "\xC2\xB0" "C"),
+    { 101u, &sGain, 0.0f, 1.0f, nullptr, nullptr },
 };
 
 /*******************************************************************************
@@ -54,15 +54,17 @@ static void testInitValidation(void)
 {
     KymoParamReceiver receiver;
     float value = 0.0f;
-    const KymoParameter nullTarget[] = { { 1u, nullptr, 0.0f, 1.0f } };
-    const KymoParameter inverted[] = { { 1u, &value, 2.0f, 1.0f } };
-    const KymoParameter notFinite[] = { { 1u, &value, 0.0f, (float)INFINITY } };
-    const KymoParameter duplicate[] = { { 1u, &value, 0.0f, 1.0f }, { 1u, &value, 0.0f, 1.0f } };
+    const KymoParameter nullTarget[] = { { 1u, nullptr, 0.0f, 1.0f, nullptr, nullptr } };
+    const KymoParameter inverted[] = { KYMO_PARAM(1, value, 2.0f, 1.0f, "") };
+    const KymoParameter notFinite[] = { KYMO_PARAM(1, value, 0.0f, INFINITY, "") };
+    const KymoParameter duplicate[] = { KYMO_PARAM(1, value, 0.0f, 1.0f, ""), KYMO_PARAM(1, value, 0.0f, 1.0f, "") };
+    const KymoParameter longName[] = { { 1u, &value, 0.0f, 1.0f, "abcdefghijklmnopqrstuvwxy", nullptr } };
+    const KymoParameter longUnit[] = { { 1u, &value, 0.0f, 1.0f, "v", "123456789" } };
     KymoParameter tooMany[KYMO_MAX_PARAMETERS + 1u];
     uint8_t frame[KYMO_FRAME_MAX_SIZE];
     KymoDataPoint point;
     for (unsigned index = 0u; index <= KYMO_MAX_PARAMETERS; ++index) {
-        tooMany[index] = KymoParameter{ (uint8_t)index, &value, 0.0f, 1.0f };
+        tooMany[index] = KymoParameter{ (uint8_t)index, &value, 0.0f, 1.0f, nullptr, nullptr };
     }
     assert(KymoParam_Init(nullptr, sTable, 3u) == KYMO_BAD_CONFIG);
     assert(KymoParam_Init(&receiver, nullptr, 3u) == KYMO_BAD_CONFIG);
@@ -71,6 +73,8 @@ static void testInitValidation(void)
     assert(KymoParam_Init(&receiver, inverted, 1u) == KYMO_BAD_CONFIG);
     assert(KymoParam_Init(&receiver, notFinite, 1u) == KYMO_BAD_CONFIG);
     assert(KymoParam_Init(&receiver, duplicate, 2u) == KYMO_BAD_CONFIG);
+    assert(KymoParam_Init(&receiver, longName, 1u) == KYMO_BAD_CONFIG);
+    assert(KymoParam_Init(&receiver, longUnit, 1u) == KYMO_BAD_CONFIG);
     assert(KymoParam_Init(&receiver, tooMany, KYMO_MAX_PARAMETERS + 1u) == KYMO_BAD_CONFIG);
     /* A failed Init leaves an unusable receiver, never a half-configured one. */
     assert(KymoParam_Feed(&receiver, frame, writeFrame(frame, 1u, 0.5f, 1u)) == 0u);
@@ -173,6 +177,77 @@ static void testResynchronization(void)
 }
 
 /*******************************************************************************
+ * writeList
+ ******************************************************************************/
+static size_t writeList(uint8_t *frame, uint8_t length, uint8_t operation)
+{
+    frame[0] = KYMO_SYNC_0;
+    frame[1] = KYMO_SYNC_1;
+    frame[2] = KYMO_DESCRIPTOR_PARAM;
+    frame[3] = length;
+    frame[4] = operation;
+    for (uint8_t index = 1u; index < length; ++index) {
+        frame[4u + index] = 0u;
+    }
+    frame[4u + length] = KymoProtocol_Crc8(frame + 2, 2u + length);
+    return 5u + length;
+}
+
+/*******************************************************************************
+ * testDiscovery
+ ******************************************************************************/
+static void testDiscovery(void)
+{
+    KymoParamReceiver receiver;
+    uint8_t request[16];
+    uint8_t frame[KYMO_PARAM_FRAME_MAX_SIZE];
+    KymoDataPoint point;
+    resetValues(&receiver);
+    assert(KymoParam_NextDescription(&receiver, frame, sizeof(frame)) == 0u);
+    /* The host's request, as KymoStudio encodes it: a5 5a 60 01 01 crc. */
+    const size_t requestLength = writeList(request, 1u, KYMO_PARAM_OP_LIST);
+    const uint8_t golden[] = { 0xA5u, 0x5Au, 0x60u, 0x01u, 0x01u, 0xD7u };
+    assert((requestLength == sizeof(golden)) && (memcmp(request, golden, sizeof(golden)) == 0));
+    assert(KymoParam_Feed(&receiver, request, requestLength) == 0u);
+    /* Too small a buffer keeps the description due. */
+    assert(KymoParam_NextDescription(&receiver, frame, 10u) == 0u);
+    size_t length = KymoParam_NextDescription(&receiver, frame, sizeof(frame));
+    const uint8_t first[] = { 0xA5u, 0x5Au, 0x60u, 17u, KYMO_PARAM_OP_DESCRIPTION, 7u, 0u, 3u,
+                              0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x20u, 0x41u,
+                              3u, 's', 'K', 'p', 0u };
+    assert((length == sizeof(first) + 1u) && (memcmp(frame, first, sizeof(first)) == 0));
+    assert(frame[length - 1u] == KymoProtocol_Crc8(frame + 2, length - 3u));
+    length = KymoParam_NextDescription(&receiver, frame, sizeof(frame));
+    assert((frame[5] == 100u) && (frame[6] == 1u) && (frame[16] == 9u));
+    assert(memcmp(frame + 17, "sSetpoint", 9u) == 0);
+    assert((frame[26] == 3u) && (memcmp(frame + 27, "\xC2\xB0" "C", 3u) == 0));
+    length = KymoParam_NextDescription(&receiver, frame, sizeof(frame));
+    assert((frame[5] == 101u) && (frame[16] == 0u) && (frame[17] == 0u) && (length == 19u));
+    assert(KymoParam_NextDescription(&receiver, frame, sizeof(frame)) == 0u);
+    /* Every current value follows as a readback. */
+    unsigned readbacks = 0u;
+    while (KymoParam_NextReadback(&receiver, &point) == KYMO_OK) {
+        ++readbacks;
+    }
+    assert(readbacks == 3u);
+    /* Unknown operation, wrong length, oversized length and bad CRC are discarded. */
+    const uint32_t invalid = receiver.invalid;
+    (void)KymoParam_Feed(&receiver, request, writeList(request, 1u, 0x7Fu));
+    (void)KymoParam_Feed(&receiver, request, writeList(request, 2u, KYMO_PARAM_OP_LIST));
+    request[3] = 9u;
+    (void)KymoParam_Feed(&receiver, request, 4u);
+    (void)writeList(request, 1u, KYMO_PARAM_OP_LIST);
+    request[5] = (uint8_t)(request[5] ^ 0x01u);
+    (void)KymoParam_Feed(&receiver, request, 6u);
+    assert((receiver.invalid == invalid + 4u) && (receiver.describe_next == 3u));
+    /* A request split across reads still works. */
+    (void)writeList(request, 1u, KYMO_PARAM_OP_LIST);
+    (void)KymoParam_Feed(&receiver, request, 3u);
+    (void)KymoParam_Feed(&receiver, request + 3, 3u);
+    assert(receiver.describe_next == 0u);
+}
+
+/*******************************************************************************
  * main
  ******************************************************************************/
 int main(void)
@@ -181,6 +256,7 @@ int main(void)
     testAcceptedWriteAndReadback();
     testRefusedWrites();
     testResynchronization();
+    testDiscovery();
     printf("parameter back channel: PASS\n");
     return 0;
 }

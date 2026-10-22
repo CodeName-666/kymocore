@@ -226,34 +226,60 @@ cross-transport framing is required.
 
 ## Back channel: host writes to parameters
 
-Since KymoCore 7.1 the host may write registered application parameters
-(`KYMO_ENABLE_PARAMETERS=1`, which requires `KYMO_ENABLE_DECODER=1`). There is no
-new frame type: the host sends an ordinary DATA frame towards the device.
+Since KymoCore 7.1 the host may discover and write registered application
+parameters (`KYMO_ENABLE_PARAMETERS=1`, which requires `KYMO_ENABLE_DECODER=1`).
+The firmware declares them in one table, for example
+`KYMO_PARAM(100, kp, 0.0f, 10.0f, "")`; names, units and IDs live only there.
 
 | Direction | Frame | Meaning |
 |---|---|---|
+| Host → device | Parameter control `a5 5a 60 01 01 d7` | List request |
+| Device → host | Parameter control, operation 0x02, one per parameter | Description |
 | Host → device | DATA, CRC required, no X/Z/timestamp; `id` = parameter, `value` = new setting | Write request |
 | Device → host | DATA with the same `id`; `value` = what the parameter now holds; optional timestamp | Readback |
 
-The device applies a write only for a registered ID and a finite value inside the
-parameter's inclusive [minimum, maximum]. An accepted or out-of-range write is
-answered with a readback, so the host sees the value actually in force. Unknown
-IDs, NO_CRC frames, bad CRCs and frames with extra fields get no readback. The
-host treats a missing readback as "not confirmed"; it never assumes success.
+### Parameter control frame
 
-Golden vector, host → device, parameter 7 set to 1.0: `a5 5a 40 07 00 00 80 3f 54`.
+Descriptor `0x60`: wire version 1 with bit 5 set marks a non-DATA message, and
+bits 4..0 select it (`0x61` is reserved for a later address-based write).
+
+| Offset | Size | Field |
+|---:|---:|---|
+| 0 | 2 | Sync `A5 5A` |
+| 2 | 1 | Descriptor `0x60` |
+| 3 | 1 | Payload length L (1..64) |
+| 4 | L | Payload; first byte is the operation |
+| 4+L | 1 | CRC-8/ATM over descriptor, length and payload (mandatory) |
+
+Operation `0x01` LIST (host → device) has no further fields. Operation `0x02`
+DESCRIPTION (device → host) carries `id` (u8), `index` (u8), `count` (u8),
+`minimum` and `maximum` (f32 LE), then the name and the unit, each as a length
+byte followed by UTF-8 bytes without terminator (name ≤ 24, unit ≤ 8 bytes).
+`index` and `count` tell the host when the list is complete.
+
+Golden vectors: list request `a5 5a 60 01 01 d7`; write parameter 7 = 1.0:
+`a5 5a 40 07 00 00 80 3f 54`.
+
+### Rules
+
+After a list request the device sends every description and a readback of every
+current value. The device applies a write only for a registered ID and a finite
+value inside the parameter's inclusive [minimum, maximum]. An accepted or
+out-of-range write is answered with a readback, so the host sees the value
+actually in force. Unknown IDs, NO_CRC frames, bad CRCs and frames with extra
+fields get no readback. The host treats a missing readback as "not confirmed";
+it never assumes success.
 
 Parameter IDs share the channel ID space with measurements. Firmware should pick
 IDs its measurement channels do not use, so readbacks are distinguishable.
 
-Transports: Serial/USB, TCP and UDP carry the frame unchanged (UDP replies go to
-the last sender). MQTT publishes it on the configured `tx_topic`. Classic CAN
-cannot carry the 9-byte frame; CAN-FD can.
+Transports: Serial/USB, TCP and UDP carry the frames unchanged (UDP replies go
+to the last sender). MQTT publishes them on the configured `tx_topic`. Classic
+CAN cannot carry them; CAN-FD can.
 
 Reserved for later: an address-based write (parameters derived from an ELF
-symbol table) will use a separate message type in descriptor bits 5..4, so the
-DATA-frame write above keeps its meaning. It must stay limited to memory ranges
-the firmware explicitly allows.
+symbol table) uses descriptor `0x61`, so the frames above keep their meaning. It
+must stay limited to memory ranges the firmware explicitly allows.
 
 ## Legacy JSON compatibility
 

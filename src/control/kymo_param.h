@@ -21,6 +21,12 @@
  * that readback. An out-of-range write therefore reports the unchanged value.
  * Writes with an unknown ID, a bad CRC or a bad layout get no readback.
  *
+ * Discovery: the host asks for the parameter list with a parameter control frame
+ * (KYMO_DESCRIPTOR_PARAM, operation KYMO_PARAM_OP_LIST). The receiver then queues
+ * one description per parameter (ID, name, unit, limits) and a readback of every
+ * current value. KymoParam_NextDescription encodes the descriptions; the host
+ * fills its parameter panel from them, so names and IDs live only in this table.
+ *
  * Cost: KymoParam_Feed does constant work per byte and one table lookup of at
  * most KYMO_MAX_PARAMETERS entries per complete frame. Nothing runs unless the
  * application feeds bytes; nothing is compiled unless KYMO_ENABLE_PARAMETERS=1.
@@ -37,11 +43,14 @@
  * @par Usage
  * @code{.c}
  * static float kp = 1.0f;
- * static const KymoParameter params[] = { { 100u, &kp, 0.0f, 10.0f } };
+ * static const KymoParameter params[] = { KYMO_PARAM(100, kp, 0.0f, 10.0f, "") };
  * static KymoParamReceiver receiver;
  * KymoParam_Init(&receiver, params, 1u);
  * // In the application loop, with bytes read without blocking:
  * KymoParam_Feed(&receiver, rx, rx_length);
+ * uint8_t frame[KYMO_PARAM_FRAME_MAX_SIZE];
+ * size_t length;
+ * while ((length = KymoParam_NextDescription(&receiver, frame, sizeof(frame))) != 0u) { send(frame, length); }
  * KymoDataPoint readback;
  * while (KymoParam_NextReadback(&receiver, &readback) == KYMO_OK) { send(readback); }
  * @endcode
@@ -66,6 +75,64 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * @brief Parameter control operation: host asks for the parameter list.
+ * @details Payload is this single byte. Unknown operations are discarded.
+ * @par Usage
+ * Sent by the host; the receiver handles it inside KymoParam_Feed.
+ */
+#define KYMO_PARAM_OP_LIST 0x01u
+
+/**
+ * @brief Parameter control operation: device describes one parameter.
+ * @details Payload: op, id, index, count, minimum (f32 LE), maximum (f32 LE),
+ * name length, name bytes, unit length, unit bytes. Names and units are UTF-8
+ * without terminator; index and count let the host see when the list is complete.
+ * @par Usage
+ * Produced by KymoParam_NextDescription.
+ */
+#define KYMO_PARAM_OP_DESCRIPTION 0x02u
+
+/**
+ * @brief Longest parameter name in bytes, without terminator.
+ * @details KymoParam_Init rejects longer names.
+ * @par Usage
+ * Keep variable names used with KYMO_PARAM within this length.
+ */
+#define KYMO_PARAM_NAME_MAX 24u
+
+/**
+ * @brief Longest unit text in bytes, without terminator.
+ * @details KymoParam_Init rejects longer units.
+ * @par Usage
+ * Short units such as "°C" or "rpm".
+ */
+#define KYMO_PARAM_UNIT_MAX 8u
+
+/**
+ * @brief Largest parameter control frame: one description with maximum name and unit.
+ * @details Sync (2), descriptor, length, 14 fixed payload bytes, name, unit and CRC.
+ * @par Usage
+ * Declare uint8_t frame[KYMO_PARAM_FRAME_MAX_SIZE] for KymoParam_NextDescription.
+ */
+#define KYMO_PARAM_FRAME_MAX_SIZE (19u + KYMO_PARAM_NAME_MAX + KYMO_PARAM_UNIT_MAX)
+
+/**
+ * @brief Table entry for a variable; the variable's name becomes the parameter name.
+ *
+ * @details Expands to a KymoParameter initializer. Each argument is used once;
+ * the name is the variable expression as written, e.g. "kp" or "ctrl.kp".
+ * @param id_ Wire ID (0..255), unique in the table.
+ * @param variable_ A float lvalue the host may write.
+ * @param minimum_ Smallest accepted value.
+ * @param maximum_ Largest accepted value.
+ * @param unit_ Unit text such as "°C", or "" for none.
+ * @par Usage
+ * static const KymoParameter params[] = { KYMO_PARAM(100, kp, 0.0f, 10.0f, "") };
+ */
+#define KYMO_PARAM(id_, variable_, minimum_, maximum_, unit_) \
+    { (uint8_t)(id_), &(variable_), (float)(minimum_), (float)(maximum_), #variable_, (unit_) }
 
 /**
  * @brief One parameter the host may write.
@@ -97,6 +164,17 @@ typedef struct {
      * @details Input; finite and not smaller than minimum.
      */
     float maximum;
+    /**
+     * @brief Name shown by the host, e.g. "kp".
+     * @details Input; NULL or up to KYMO_PARAM_NAME_MAX bytes. NULL sends an empty
+     * name and the host shows the ID instead. Must outlive the receiver.
+     */
+    const char *name;
+    /**
+     * @brief Unit shown by the host, e.g. "°C".
+     * @details Input; NULL or up to KYMO_PARAM_UNIT_MAX bytes; NULL means none.
+     */
+    const char *unit;
 } KymoParameter;
 
 /**
@@ -122,6 +200,8 @@ typedef struct {
     uint8_t pending[(KYMO_MAX_PARAMETERS + 7u) / 8u];
     /** @brief Table index where the next readback search starts (round robin). */
     size_t cursor;
+    /** @brief Table index of the next description to send; count when none is due. */
+    size_t describe_next;
     /** @brief Writes applied to a parameter. */
     uint32_t accepted;
     /** @brief Valid frames refused: unknown ID or value out of range. */
@@ -175,6 +255,22 @@ size_t KymoParam_Feed(KymoParamReceiver *receiver, const uint8_t *bytes, size_t 
  * while (KymoParam_NextReadback(&receiver, &point) == KYMO_OK) { encode and send point; }
  */
 KymoStatus KymoParam_NextReadback(KymoParamReceiver *receiver, KymoDataPoint *point);
+
+/**
+ * @brief Encode the next due parameter description after a list request.
+ *
+ * @details Descriptions go out in table order, one per call. A new list request
+ * restarts the sequence. The frame is complete and CRC-protected; send it as is.
+ * Taking a description advances the sequence, so send it in the same step.
+ * @param[in,out] receiver Initialized receiver; NULL yields zero.
+ * @param[out] output Frame buffer; NULL yields zero.
+ * @param[in] capacity Writable bytes; KYMO_PARAM_FRAME_MAX_SIZE fits every description.
+ * @return Frame length, or zero when none is due or the buffer is too small
+ *         (the description then stays due).
+ * @par Usage
+ * while ((n = KymoParam_NextDescription(&receiver, frame, sizeof(frame))) != 0u) { send(frame, n); }
+ */
+size_t KymoParam_NextDescription(KymoParamReceiver *receiver, uint8_t *output, size_t capacity);
 
 #ifdef __cplusplus
 }

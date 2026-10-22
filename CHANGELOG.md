@@ -8,6 +8,10 @@
   [minimum, maximum], unknown IDs, NO_CRC and bad frames are refused. Accepted and
   out-of-range writes queue a readback that the application sends as normal DATA.
   Byte-wise reassembly with constant work per byte, no heap, compiled out by default.
+- Parameter discovery: `KymoParameter` carries `name` and `unit`; `KYMO_PARAM(id, var,
+  min, max, unit)` names the entry after its variable. A host list request
+  (descriptor `0x60`, operation LIST) queues one description per parameter, sent with
+  `KymoParam_NextDescription`, plus a readback of every current value.
 - `emb_bitset_clear` in `common/embedded_bits.h`.
 
 ## 7.0.0 - 2026-10-18
