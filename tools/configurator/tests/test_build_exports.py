@@ -40,7 +40,7 @@ class ExportBuildTests(unittest.TestCase):
                      '-I' + str(snapshot), '-DKYMO_USER_CONFIG_HEADER="kymo_user_config.h"']
             client = root / 'client.c'
             client.write_text('''#include <kymo_generated_config.h>
-#include <kymo_features.h>
+#include <kymo_config.h>
 #if KYMO_EFFECTIVE_RUNTIME
 uint32_t kymo_port_clock_ms(void *u) { (void)u; return 0; }
 uint8_t kymo_port_sample(void *u, uint8_t id, KymoSample *s) {
@@ -66,7 +66,7 @@ int main(void) {
                 build.mkdir(exist_ok=True)
                 selected = flags + [f'-DKYMO_ENABLED={enabled}']
                 objects = []
-                for source in [*sorted((CORE / 'src').glob('*.cpp')),
+                for source in [*sorted((CORE / 'src').rglob('*.cpp')),
                                snapshot / 'kymo_generated_config.cpp']:
                     target = build / (source.stem + '.o')
                     self.run_command(self.cxx, '-std=c++11', *selected, '-c', str(source), '-o', str(target))
@@ -113,8 +113,8 @@ int main(void) {
             root = Path(directory)
             project = default_project()
             snapshot = generate(project, 'production', root / 'generated')
-            (root / 'main.cpp').write_text('#include <kymo_features.h>\n#if KYMO_ENABLED\n#error wrong profile\n#endif\nint main() { return 0; }\n')
-            sources = ' '.join('"' + p.as_posix() + '"' for p in sorted((CORE / 'src').glob('*.cpp')))
+            (root / 'main.cpp').write_text('#include <kymo_config.h>\n#if KYMO_ENABLED\n#error wrong profile\n#endif\nint main() { return 0; }\n')
+            sources = ' '.join('"' + p.as_posix() + '"' for p in sorted((CORE / 'src').rglob('*.cpp')))
             (root / 'CMakeLists.txt').write_text(f'''cmake_minimum_required(VERSION 3.19)
 project(KymoSnapshot LANGUAGES CXX)
 add_library(core STATIC {sources})

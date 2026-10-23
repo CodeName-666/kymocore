@@ -17,10 +17,10 @@ def parser() -> argparse.ArgumentParser:
         if name in ("check","generate"): q.add_argument("--out",type=Path,required=True)
         if name=="generate": q.add_argument("--force",action="store_true")
         q.add_argument("--json",action="store_true",dest="json_output")
-    q=sub.add_parser("migrate"); q.add_argument("project",type=Path); q.add_argument("--to-schema",type=int,required=True); q.add_argument("--output",type=Path)
+    q=sub.add_parser("migrate"); q.add_argument("project",type=Path); q.add_argument("--to-schema",type=int,default=2); q.add_argument("--output",type=Path)
     q=sub.add_parser("new"); q.add_argument("path",type=Path); q.add_argument("--name",default="KymoProject")
     q=sub.add_parser("init-port"); q.add_argument("project",type=Path); q.add_argument("--out",type=Path,required=True)
-    q=sub.add_parser("gui"); q.add_argument("project",type=Path,nargs="?")
+    q=sub.add_parser("gui"); q.add_argument("project",type=Path,nargs="?"); q.add_argument("--mode",choices=("guided","professional")); q.add_argument("--lang",choices=("en","de"))
     return p
 
 
@@ -30,7 +30,7 @@ def main(argv=None) -> int:
         try: from .gui.app import run
         except ImportError as exc:
             print(f"GUI requires the optional PySide6 dependency: {exc}",file=sys.stderr); return 2
-        return run(args.project)
+        return run(args.project,args.mode,args.lang)
     if args.command=="new":
         if args.path.exists(): print(f"Refusing to overwrite {args.path}",file=sys.stderr); return 2
         save_project(args.path,default_project(args.name)); print(f"Created {args.path}"); return 0

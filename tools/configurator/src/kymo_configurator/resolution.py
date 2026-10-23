@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
 from __future__ import annotations
 from typing import Any
-from .model import FEATURES
+from .model import FEATURES, OPTIONAL_FEATURES
 
 
 def resolve_profile(project: dict[str, Any], profile_name: str) -> dict[str, Any]:
@@ -10,6 +10,7 @@ def resolve_profile(project: dict[str, Any], profile_name: str) -> dict[str, Any
     requested = dict(profile["features"])
     trace = dict(profile.get("trace", {}))
     effective = {key: bool(enabled and requested[key]) for key in FEATURES}
+    effective.update({key: bool(enabled and requested.get(key, False)) for key in OPTIONAL_FEATURES})
     trace_enabled = bool(enabled and trace.get("enabled", False))
     trace_effective = {"enabled": trace_enabled}
     trace_effective.update({key: bool(trace_enabled and trace.get(key, False))

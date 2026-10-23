@@ -13,13 +13,7 @@
 #ifndef KYMO_INSTRUMENTATION_H
 #define KYMO_INSTRUMENTATION_H
 
-#include "kymo_version.h"
-
-#if KYMO_CONFIG_API_VERSION < 1
-#error "Kymo instrumentation requires configuration API version 1"
-#endif
-
-#include "kymo_features.h"
+#include "../kymo_config.h"
 
 #if KYMO_EFFECTIVE_TRACE
 #include "kymo_trace.h"

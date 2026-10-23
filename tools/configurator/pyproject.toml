@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kymo-configurator"
-version = "0.1.0"
-description = "Qt-free configuration engine and optional Qt Widgets editor for KymoCore"
+version = "0.2.0"
+description = "KymoCore 7 configuration engine with guided and professional Qt Widgets modes"
 requires-python = ">=3.12"
 dependencies = []
 

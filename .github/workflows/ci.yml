@@ -5,24 +5,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Global compile-out without optimizer assistance
-        run: python3 test/compile_out_test.py
-      - name: Trace recorder and transport ownership
-        run: python3 test/trace_core_test.py
-      - name: Portables Beispiel (Standardfeatures)
-        run: |
-          g++ -std=c++11 -Wall -Wextra -Werror -pedantic -fno-exceptions -fno-rtti -Isrc \
-            examples/basic/main.cpp src/kymo_protocol.cpp src/kymo_runtime.cpp src/kymo.cpp -o kymo-basic
-          ./kymo-basic
-      - name: Golden-Vector-Test (alle Features, ohne und mit CRC)
-        run: |
-          for crc in 0 1; do
-            g++ -std=c++11 -Wall -Wextra -Werror -pedantic -fno-exceptions -fno-rtti -Isrc \
-              -DKYMO_ENABLE_RUNTIME=1 -DKYMO_ENABLE_X=1 -DKYMO_ENABLE_Z=1 -DKYMO_ENABLE_TIMESTAMP=1 \
-              -DKYMO_ENABLE_DECODER=1 -DKYMO_ENABLE_CPP=1 -DKYMO_ENABLE_CRC=$crc \
-              test/protocol_golden_test.cpp src/kymo_protocol.cpp src/kymo_runtime.cpp src/kymo.cpp -o golden
-            ./golden
-          done
+      - name: Native suite (utilities, codec, runtime, sender, trace, compile-out, structure)
+        run: python3 test/native_test.py
   package:
     runs-on: ubuntu-latest
     steps:

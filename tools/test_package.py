@@ -106,7 +106,7 @@ def main():
     program = workspace / ("basic.exe" if os.name == "nt" else "basic")
     run(compiler, "-std=c++11", "-Wall", "-Wextra", "-Werror", "-pedantic",
         "-fno-exceptions", "-fno-rtti", "-I" + str(unpacked / "src"),
-        unpacked / "examples/basic/main.cpp", *sorted((unpacked / "src").glob("*.cpp")),
+        unpacked / "examples/basic/main.cpp", *sorted((unpacked / "src").rglob("*.cpp")),
         "-o", program)
     run(program, cwd=workspace)
     print("Packaged portable example passed", flush=True)

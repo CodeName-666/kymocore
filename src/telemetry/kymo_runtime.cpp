@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
  * Copyright (c) 2026 Christof Seidel */
-#include "kymo_features.h"
+#include "../kymo_config.h"
 #if KYMO_ENABLED
 #include "kymo_runtime.h"
 #if KYMO_ENABLE_RUNTIME
@@ -14,9 +14,10 @@ static uint8_t config_valid(const KymoConfig *config)
     uint8_t valid = 0;
     if (config != nullptr) {
         valid = (uint8_t)((config->channels != nullptr) &&
-            (config->last_sample_ms != nullptr) && (config->clock_ms != nullptr) &&
+            (config->clock_ms != nullptr) &&
             (config->sample != nullptr) && (config->write != nullptr) &&
-            (config->channel_count > 0u) && (config->channel_count <= 256u));
+            (config->channel_count > 0u) &&
+            (config->channel_count <= KYMO_MAX_CHANNELS));
         if (valid != 0u) {
             uint16_t i;
             uint8_t seen[32] = {};
@@ -45,13 +46,14 @@ KymoStatus Kymo_Init(KymoContext *context, const KymoConfig *config)
         if (config_valid(config)) {
             uint16_t i;
             uint32_t now = config->clock_ms(config->clock_user);
+            context->config = *config;
             for (i = 0; i < config->channel_count; ++i) {
-                config->last_sample_ms[i] = now - config->channels[i].period_ms;
+                context->last_sample_ms[i] = now - config->channels[i].period_ms;
             }
 #if KYMO_ENABLE_TIMESTAMP
             context->start_ms = now;
 #endif
-            context->config = config;
+            context->initialized = 1u;
             status = KYMO_OK;
         }
     }
@@ -64,7 +66,7 @@ KymoStatus Kymo_Init(KymoContext *context, const KymoConfig *config)
 static KymoStatus transmit(KymoContext *context)
 {
     KymoStatus status = KYMO_IO_ERROR;
-    const KymoConfig *config = context->config;
+    const KymoConfig *config = &context->config;
     uint8_t remaining = (uint8_t)(context->tx_length - context->tx_offset);
     uint8_t count = config->write(config->transport_user,
                                  context->tx + context->tx_offset, remaining);
@@ -84,10 +86,10 @@ static KymoStatus sample_channel(KymoContext *context, uint16_t index,
                                     uint32_t now)
 {
     KymoStatus status = KYMO_SKIPPED;
-    const KymoConfig *config = context->config;
+    const KymoConfig *config = &context->config;
     const KymoChannel *ch = &config->channels[index];
     KymoSample sample = {};
-    config->last_sample_ms[index] = now;
+    context->last_sample_ms[index] = now;
     if (config->sample(config->sample_user, ch->id, &sample)) {
         KymoDataPoint point = {};
         point.id = ch->id;
@@ -103,7 +105,7 @@ static KymoStatus sample_channel(KymoContext *context, uint16_t index,
         point.timestamp_ms = now - context->start_ms;
 #endif
         context->tx_offset = 0;
-        context->tx_length = (uint8_t)kymo_encode_data(&point, context->tx,
+        context->tx_length = (uint8_t)KymoProtocol_Encode(&point, context->tx,
                                                         sizeof(context->tx));
         if (context->tx_length == 0u) {
             status = KYMO_BAD_SAMPLE;
@@ -120,7 +122,7 @@ static KymoStatus sample_channel(KymoContext *context, uint16_t index,
 static KymoStatus sample_next_due(KymoContext *context)
 {
     KymoStatus status = KYMO_IDLE;
-    const KymoConfig *config = context->config;
+    const KymoConfig *config = &context->config;
     uint32_t now = config->clock_ms(config->clock_user);
     uint16_t checked;
     uint8_t selected = 0;
@@ -131,7 +133,7 @@ static KymoStatus sample_next_due(KymoContext *context)
         if (context->next_channel == config->channel_count) {
             context->next_channel = 0;
         }
-        if ((uint32_t)(now - config->last_sample_ms[index]) >= ch->period_ms) {
+        if ((uint32_t)(now - context->last_sample_ms[index]) >= ch->period_ms) {
             selected = 1;
             status = sample_channel(context, index, now);
         }
@@ -145,8 +147,8 @@ static KymoStatus sample_next_due(KymoContext *context)
 KymoStatus Kymo_Main(KymoContext *context)
 {
     KymoStatus status = KYMO_BAD_CONFIG;
-    if ((context != nullptr) && (context->config != nullptr)) {
-        const KymoConfig *config = context->config;
+    if ((context != nullptr) && (context->initialized != 0u)) {
+        const KymoConfig *config = &context->config;
         if (config->service != nullptr) {
             config->service(config->transport_user);
         }

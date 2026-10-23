@@ -1,8 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/schema/library.json",
   "name": "KymoCore",
-  "version": "6.4.0",
-  "description": "Portable heap-free C++11 telemetry and opt-in execution tracing: XYZ/time samples, bounded recorder, wire-v2 transport mux, compile-out controls and a CLI/Qt configurator. Hardware-neutral callback interfaces for Arduino, ESP32, STM32 and other targets.",
+  "version": "7.0.0",
+  "description": "Portable heap-free C++11 telemetry and opt-in execution tracing behind one header: XYZ/time samples, profiles, bounded recorder, transport mux, compile-out controls and a configurator. Hardware-neutral callbacks for Arduino, ESP32, STM32 and more.",
   "keywords": [
     "kymotrace",
     "telemetry",
@@ -29,13 +29,7 @@
   "frameworks": "*",
   "platforms": "*",
   "headers": [
-    "kymo_instrumentation.h",
-    "kymo_trace.h",
-    "kymo_trace_protocol.h",
-    "kymo_transport_mux.h",
-    "kymo_runtime.h",
-    "kymo_protocol.h",
-    "kymo.h"
+    "KymoCore.h"
   ],
   "examples": [
     {

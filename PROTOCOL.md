@@ -149,7 +149,7 @@ Bytes: A5 5A 52 03 00 00 20 C0 87 D6 12 00 97
 Size:  13
 ```
 
-Microsecond timestamps are encoded with `kymo_encode_data` and
+Microsecond timestamps are encoded with `KymoProtocol_Encode` and
 `KYMO_FLAG_TIMESTAMP | KYMO_FLAG_TIMESTAMP_US` on a `KymoDataPoint`
 (`KYMO_ENABLE_TIMESTAMP=1`); `KymoDataPoint::timestamp_ms` then holds µs.
 The cyclic runtime and C++ sender keep millisecond clocks and reject the flag.
@@ -163,25 +163,25 @@ The default firmware build supports scalar Y only. Enable `KYMO_ENABLE_X`,
 be removed with `KYMO_ENABLE_RUNTIME=0`. MCU decoding is opt-in through
 `KYMO_ENABLE_DECODER=1`; it rejects layouts disabled in that firmware build.
 The wire layout and the desktop receiver's supported formats are unchanged.
-Edit `src/kymo_build_config.h` for internal feature configuration;
-`src/kymo_features.h` validates it. Compiler definitions may override the header.
+All settings and profiles live in `src/kymo_config.h`, which also validates them.
+Compiler definitions may override the header.
 
 KymoCore provides a portable C++11 cyclic API. The v6.1 NO_CRC extension keeps
-wire version 1 and all frame sizes. `Kymo_Init(context, config)` binds a static configuration;
+wire version 1 and all frame sizes. `Kymo_Init(context, config)` validates and copies a configuration;
 `Kymo_Main(context)` schedules samples, encodes frames and resumes short
 writes. See [README.md](README.md) for configuration and transport ownership.
 
-The optional C++ push API remains available:
+The optional C++ push sender `KymoSender` remains available:
 
 ```cpp
-kymo.send(0, temperature);           // Y, 9 bytes
-kymo.send2D(1, position, force);     // X/Y, 13 bytes
-kymo.send3D(2, x, y, z, true);        // X/Y/Z + timestamp, 21 bytes
+sender.send(0, temperature);           // Y, 9 bytes
+sender.send2D(1, position, force);     // X/Y, 13 bytes
+sender.send3D(2, x, y, z, true);       // X/Y/Z + timestamp, 21 bytes
 ```
 
-A true send result means accepted into the fixed 21-byte buffer. Call `flush()`
-cyclically to complete a short write before submitting another point. Timestamp
-use in the C++ API still requires `setMillisecondCallback` and `setStartTime`.
+`KYMO_OK` means accepted into the fixed 21-byte buffer. Call `flush()`
+cyclically until it returns `KYMO_OK` before submitting another point. Timestamps
+in the C++ API require `setClock` and optionally `setStartTime`.
 Async transports must report busy until they release the transmitted buffer.
 
 ## Throughput
@@ -224,6 +224,71 @@ This uses only four CAN data bytes for a float32 measurement. CAN-FD may carry
 an entire v6 binary frame unchanged when X/Z/timestamp or CRC-compatible
 cross-transport framing is required.
 
+## Back channel: host writes to parameters
+
+Since KymoCore 7.1 the host may discover and write registered application
+parameters (`KYMO_ENABLE_PARAMETERS=1`, which requires `KYMO_ENABLE_DECODER=1`).
+The firmware declares them in one table, for example
+`KYMO_PARAM(100, kp, 0.0f, 10.0f, "")`; names, units and IDs live only there.
+
+| Direction | Frame | Meaning |
+|---|---|---|
+| Host → device | Parameter control `a5 5a 60 01 01 d7` | List request |
+| Device → host | Parameter control, operation 0x02, one per parameter | Description |
+| Host → device | DATA, CRC required, no X/Z/timestamp; `id` = parameter, `value` = new setting | Write request |
+| Device → host | DATA with the same `id`; `value` = what the parameter now holds; optional timestamp | Readback |
+
+### Parameter control frame
+
+Descriptor `0x60`: wire version 1 with bit 5 set marks a non-DATA message, and
+bits 4..0 select it (`0x61` is reserved for a later address-based write).
+
+| Offset | Size | Field |
+|---:|---:|---|
+| 0 | 2 | Sync `A5 5A` |
+| 2 | 1 | Descriptor `0x60` |
+| 3 | 1 | Payload length L (1..64) |
+| 4 | L | Payload; first byte is the operation |
+| 4+L | 1 | CRC-8/ATM over descriptor, length and payload (mandatory) |
+
+Operation `0x01` LIST (host → device) has no further fields. Operation `0x02`
+DESCRIPTION (device → host) carries `id` (u8), `index` (u8), `count` (u8),
+`minimum` and `maximum` (f32 LE), then the name and the unit, each as a length
+byte followed by UTF-8 bytes without terminator (name ≤ 24, unit ≤ 8 bytes).
+`index` and `count` tell the host when the list is complete.
+
+Golden vectors: list request `a5 5a 60 01 01 d7`; write parameter 7 = 1.0:
+`a5 5a 40 07 00 00 80 3f 54`.
+
+### Rules
+
+After a list request the device sends every description and a readback of every
+current value. The device applies a write only for a registered ID and a finite
+value inside the parameter's inclusive [minimum, maximum]. An accepted or
+out-of-range write is answered with a readback, so the host sees the value
+actually in force. Unknown IDs, NO_CRC frames, bad CRCs and frames with extra
+fields get no readback. The host treats a missing readback as "not confirmed";
+it never assumes success.
+
+Parameter IDs share the channel ID space with measurements. Firmware should pick
+IDs its measurement channels do not use, so readbacks are distinguishable.
+
+Transports: Serial/USB, TCP and UDP carry the frames unchanged (UDP replies go
+to the last sender). MQTT publishes them on the configured `tx_topic`.
+
+CAN uses a compact write instead, because a classic data field holds 8 bytes:
+arbitration ID = the connection's configured `tx_id`, data = parameter ID (u8)
+followed by the value as little-endian binary32 (5 bytes); CAN's own framing and
+CRC replace sync, descriptor and CRC-8. The firmware hands the data field to
+`KymoParam_FeedCompact`, which applies the same rules. The readback is an ordinary
+CAN measurement whose arbitration ID is the parameter ID. Discovery does not fit
+into 8 bytes, so parameters on CAN are defined in the host. Golden vector, write
+parameter 7 = 1.0: `07 00 00 80 3f`.
+
+Reserved for later: an address-based write (parameters derived from an ELF
+symbol table) uses descriptor `0x61`, so the frames above keep their meaning. It
+must stay limited to memory ranges the firmware explicitly allows.
+
 ## Legacy JSON compatibility
 
 KymoStudio continues to accept UTF-8 JSON:
@@ -251,9 +316,9 @@ format. New embedded firmware should emit binary v6.
 
 - Python codec: `KymoStudio/python/Receiver/binary_protocol.py`
 - Backend parser: `KymoStudio/python/Backend/backend.py::_parse_data_point`
-- Embedded codec: `src/kymo_protocol.h/.cpp`
-- Embedded cyclic runtime: `src/kymo_runtime.h/.cpp`
-- Optional C++ sender: `src/kymo.h/.cpp`
+- Embedded codec: `src/telemetry/kymo_protocol.h/.cpp`
+- Embedded cyclic runtime: `src/telemetry/kymo_runtime.h/.cpp`
+- Optional C++ sender: `src/telemetry/kymo_sender.h/.cpp`
 - Embedded golden-vector test: `test/protocol_golden_test.cpp`
 - Desktop golden-vector tests: `KymoStudio/tests/test_binary_protocol.py`
 

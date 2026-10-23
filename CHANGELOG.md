@@ -1,5 +1,64 @@
 # Changelog
 
+## Unreleased (7.1.0)
+
+- Back channel: `control/kymo_param.h` lets the host write registered float
+  parameters with ordinary CRC-protected DATA frames (`KYMO_ENABLE_PARAMETERS`,
+  needs `KYMO_ENABLE_DECODER`; `KYMO_MAX_PARAMETERS`, default 8). Writes outside
+  [minimum, maximum], unknown IDs, NO_CRC and bad frames are refused. Accepted and
+  out-of-range writes queue a readback that the application sends as normal DATA.
+  Byte-wise reassembly with constant work per byte, no heap, compiled out by default.
+- Parameter discovery: `KymoParameter` carries `name` and `unit`; `KYMO_PARAM(id, var,
+  min, max, unit)` names the entry after its variable. A host list request
+  (descriptor `0x60`, operation LIST) queues one description per parameter, sent with
+  `KymoParam_NextDescription`, plus a readback of every current value.
+- `emb_bitset_clear` in `common/embedded_bits.h`.
+- `KymoParam_FeedCompact` applies a 5-byte write (ID, float32 LE) received over a link with
+  its own framing such as CAN; same rules as `KymoParam_Feed`, no discovery.
+- Configurator: optional feature `parameters` (`KYMO_ENABLE_PARAMETERS`), checked to need the
+  frame decoder. Projects without the key stay valid and keep it off; schema 2 is unchanged.
+
+## 7.0.0 - 2026-10-18
+
+Restructured for a simpler start. The wire format (protocol v6.2, wire version 1)
+and the feature set are unchanged; the API and file layout change. See
+"Migrating from KymoCore 6.x" in docs/GUIDE.md for the complete mapping.
+
+- One entry header `KymoCore.h`; sources grouped into `telemetry/`, `trace/`,
+  `transport/` and `common/`. Arduino `includes=` and PlatformIO `headers` point
+  to `KymoCore.h`.
+- One configuration header `kymo_config.h` (replaces `kymo_build_config.h`,
+  `kymo_features.h`, `kymo_version.h`) with version macros, all switches and all
+  resource sizes. New `KYMO_PROFILE` presets: `KYMO_PROFILE_MINIMAL` (default),
+  `KYMO_PROFILE_XYZ`, `KYMO_PROFILE_TRACE`. `KYMO_CONFIG_API_VERSION` is 2.
+- `kymo_types.h`: one `KymoStatus` for every module (new `KYMO_REJECTED`) and
+  shared `KymoClockFn`, `KymoWriteFn`, `KymoBusyFn`, `KymoServiceFn`, `KYMO_COUNT_OF`.
+- Runtime: `Kymo_Init` copies `KymoConfig` (it may be local); required fields
+  come first; `last_sample_ms` is removed and the schedule lives in
+  `KymoContext`, sized by `KYMO_MAX_CHANNELS` (default 16, up to 256).
+- Codec: `KymoProtocol_Encode`, `KymoProtocol_Decode` (returns `KymoStatus`),
+  `KymoProtocol_FrameLength`, `KymoProtocol_Crc8`.
+- C++: `Kymo` becomes `KymoSender` in `telemetry/kymo_sender.h` together with
+  `KymoStream`; `send*`/`flush` return `KymoStatus`; `setClock(KymoClockFn, user)`
+  replaces `setMillisecondCallback`.
+- Trace: `KymoTrace_Init`, `KymoTrace_Pop` and `KymoTrace_ContextReset` return
+  `KymoStatus`; `core_id` and `current_context` callbacks are optional.
+- Mux: `KymoTraceMux*` becomes `KymoMux*` in `transport/kymo_mux.h`; config fields
+  `write`, optional `busy`, `transport_user` and new `data_user`; zero
+  `max_frame_size`/`max_batch_events` select the maximum; `KymoTraceDataAdapter`
+  becomes `KymoMuxDataSlot`; `KYMO_TRACE_ADMIN_RECORD_MAX` becomes
+  `KYMO_MUX_ADMIN_RECORD_MAX`; `KymoMux_Service` returns `KYMO_OK`, `KYMO_IDLE`,
+  `KYMO_BUSY` or `KYMO_IO_ERROR`.
+- `common/`: CRC-16/CCITT, CRC-32 and u16/u64 writers shared by trace and mux.
+- Self-contained Arduino examples without a shared header; named-field setup.
+- New `test/native_test.py` (runtime, sender, common utilities, profiles,
+  structure check); CI runs it.
+- Configurator 0.2: project schema 2 with migration from schema 1, KymoCore 7.0
+  code generation (sizes `KYMO_MAX_CHANNELS`, optional trace callbacks), use-case
+  presets matching `KYMO_PROFILE`, a guided step-by-step mode and a professional
+  mode built from one declarative setting catalog with explanations and affected
+  macros, and extension hooks for future features (see `tools/configurator/EXTENDING.md`).
+
 ## 6.4.0 - 2026-10-15
 
 - Add `KYMO_FLAG_TIMESTAMP_US` (descriptor bit 4, data message type 01): the timestamp

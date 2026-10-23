@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <string.h>
 #include <type_traits>
-#include "kymo_instrumentation.h"
+#include "trace/kymo_instrumentation.h"
 static uint64_t ticks;
 static unsigned recorderReads;
 static unsigned contextReads;
@@ -28,16 +28,16 @@ int main(void)
     config.clock_ticks = clockRead;
     config.core_id = coreRead;
     config.current_context = contextRead;
-    assert(KymoTrace_Init(&recorder, &config) == 1u);
+    assert(KymoTrace_Init(&recorder, &config) == KYMO_OK);
     assert(measuredReturn() == 17);
     assert(recorderReads == 2u && contextReads == 2u && symbolReads == 2u);
     KymoTraceEvent event;
     const uint8_t types[] = {1u, 1u, 2u, 2u};
     const uint16_t depths[] = {1u, 2u, 2u, 1u};
     for (unsigned i = 0u; i < 4u; ++i) {
-        assert(KymoTrace_Pop(&recorder, &event) == 1u);
+        assert(KymoTrace_Pop(&recorder, &event) == KYMO_OK);
         assert(event.event_type == types[i] && event.depth == depths[i]);
     }
-    assert(KymoTrace_Pop(&recorder, &event) == 0u);
+    assert(KymoTrace_Pop(&recorder, &event) == KYMO_IDLE);
     return 0;
 }

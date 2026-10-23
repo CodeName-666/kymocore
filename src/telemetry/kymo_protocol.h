@@ -16,7 +16,7 @@
  * KymoDataPoint point = {0};
  * uint8_t frame[KYMO_FRAME_MAX_SIZE];
  * point.id = 7; point.value = 1.0f;
- * size_t length = kymo_encode_data(&point, frame, sizeof(frame));
+ * size_t length = KymoProtocol_Encode(&point, frame, sizeof(frame));
  * @endcode
  */
 #ifndef KYMO_PROTOCOL_H
@@ -31,8 +31,8 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include "common/embedded_bits.h"
-#include "kymo_features.h"
+#include "../common/embedded_bits.h"
+#include "../kymo_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -97,6 +97,19 @@ extern "C" {
 #define KYMO_DESCRIPTOR_DATA 0x40u
 
 /**
+ * @brief Descriptor of a parameter control frame (back channel), wire version 1.
+ *
+ * @details Bit 5 set marks a non-DATA message; bits 4..0 select it, and 0x60 is
+ * parameter control. Layout: sync, 0x60, payload length (1..64), payload, CRC-8
+ * over descriptor through payload. The CRC is mandatory. The payload's first byte
+ * is the operation (see kymo_param.h). 0x61 is reserved for a later
+ * address-based write. DATA decoders reject this descriptor.
+ * @par Usage
+ * Used by the parameter receiver; applications normally do not build these frames.
+ */
+#define KYMO_DESCRIPTOR_PARAM 0x60u
+
+/**
  * @brief Descriptor bit indicating a four-byte X coordinate.
  *
  * @details Adds one finite binary32 value before the mandatory Y/value field.
@@ -130,7 +143,7 @@ extern "C" {
  * KYMO_FLAG_TIMESTAMP; the frame layout and length are unchanged, but
  * KymoDataPoint::timestamp_ms then carries uint32 microseconds (wraps after
  * about 71.6 minutes). Not part of KYMO_ALLOWED_FLAGS: the channel runtimes
- * supply millisecond clocks and reject it. Use it with kymo_encode_data only.
+ * supply millisecond clocks and reject it. Use it with KymoProtocol_Encode only.
  * @par Usage
  * point.flags = KYMO_FLAG_TIMESTAMP | KYMO_FLAG_TIMESTAMP_US;
  * point.timestamp_ms = micros_since_epoch;
@@ -163,7 +176,7 @@ extern "C" {
  * @brief Flags accepted by the raw codec of this library build.
  * @details KYMO_SUPPORTED_FLAGS plus KYMO_FLAG_TIMESTAMP_US when timestamps are enabled.
  * @par Usage
- * Validate KymoDataPoint::flags before kymo_encode_data.
+ * Validate KymoDataPoint::flags before KymoProtocol_Encode.
  */
 #define KYMO_CODEC_FLAGS EMB_U8_OR(KYMO_SUPPORTED_FLAGS,     (KYMO_ENABLE_TIMESTAMP ? KYMO_FLAG_TIMESTAMP_US : 0u))
 
@@ -173,7 +186,7 @@ extern "C" {
  *
  * @details The masked descriptor must equal KYMO_DESCRIPTOR_DATA for a supported frame.
  * @par Usage
- * Used by kymo_frame_length before accepting a descriptor.
+ * Used by KymoProtocol_FrameLength before accepting a descriptor.
  */
 #define KYMO_DESCRIPTOR_VERSION_MASK 0xC0u
 
@@ -213,7 +226,7 @@ extern "C" {
  * are never sent. Zero-initialize before filling fields; absent decoded fields become zero.
  * All selected coordinates must be finite IEEE-754 binary32 values.
  * @par Usage
- * Set id/value and optional flags/fields, then call kymo_encode_data.
+ * Set id/value and optional flags/fields, then call KymoProtocol_Encode.
  */
 typedef struct
 {
@@ -282,9 +295,9 @@ typedef struct
  * @param[in] length Number of bytes to read; must fit the actual data allocation when data is non-null.
  * @return CRC byte in 0..255.
  * @par Usage
- * kymo_crc8(frame + 2, frame_length - 3) covers descriptor through payload.
+ * KymoProtocol_Crc8(frame + 2, frame_length - 3) covers descriptor through payload.
  */
-uint8_t kymo_crc8(const uint8_t *data, size_t length);
+uint8_t KymoProtocol_Crc8(const uint8_t *data, size_t length);
 #endif
 
 #if KYMO_ENABLED
@@ -301,10 +314,10 @@ uint8_t kymo_crc8(const uint8_t *data, size_t length);
  * @param[in] output_capacity Actual writable capacity in bytes; 21 bytes handles every point.
  * @return Encoded length (9, 13, 17 or 21), or zero for invalid input/insufficient capacity.
  * @par Usage
- * size_t n = kymo_encode_data(&point, frame, sizeof(frame));
+ * size_t n = KymoProtocol_Encode(&point, frame, sizeof(frame));
  * Transmit only frame[0..n-1] when n is nonzero.
  */
-size_t kymo_encode_data(const KymoDataPoint *point,
+size_t KymoProtocol_Encode(const KymoDataPoint *point,
                            uint8_t *output,
                            size_t output_capacity);
 
@@ -321,13 +334,13 @@ size_t kymo_encode_data(const KymoDataPoint *point,
  * @param[in] frame Readable frame bytes; NULL is rejected.
  * @param[in] frame_length Actual readable length; must match the descriptor-derived size exactly.
  * @param[out] output Destination measurement, or NULL to reject. Unselected fields are zero on success.
- * @return One on success; zero on validation failure.
+ * @return KYMO_OK on success; KYMO_BAD_SAMPLE for an invalid frame; KYMO_BAD_CONFIG for NULL output.
  * @par Usage
- * Consume point only when kymo_decode_data(frame, length, &point) returns nonzero.
+ * Consume point only when KymoProtocol_Decode(frame, length, &point) == KYMO_OK.
  */
-int kymo_decode_data(const uint8_t *frame,
-                        size_t frame_length,
-                        KymoDataPoint *output);
+KymoStatus KymoProtocol_Decode(const uint8_t *frame,
+                               size_t frame_length,
+                               KymoDataPoint *output);
 #endif
 
 /**
@@ -338,9 +351,9 @@ int kymo_decode_data(const uint8_t *frame,
  * @param[in] descriptor Descriptor byte from offset two of a candidate frame.
  * @return 9, 13, 17 or 21 bytes for supported layouts; zero otherwise.
  * @par Usage
- * Wait for kymo_frame_length(descriptor) bytes before complete-frame decoding.
+ * Wait for KymoProtocol_FrameLength(descriptor) bytes before complete-frame decoding.
  */
-size_t kymo_frame_length(uint8_t descriptor);
+size_t KymoProtocol_FrameLength(uint8_t descriptor);
 /** @} */
 
 #endif /* KYMO_ENABLED */

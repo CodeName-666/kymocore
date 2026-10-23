@@ -21,11 +21,11 @@ class CompilerAuditTests(unittest.TestCase):
         try:
             with tempfile.TemporaryDirectory(prefix='audit spaces ') as directory:
                 source = Path(directory) / 'app.cpp'
-                source.write_text('#include <kymo_features.h>\nint app() { return 0; }\n')
+                source.write_text('#include <kymo_config.h>\nint app() { return 0; }\n')
                 entries = [{'directory': directory, 'file': str(path),
                             'arguments': [compiler, '-std=c++11', '-I' + str(CORE / 'src'),
                                           '-DKYMO_ENABLED=0', '-c', str(path), '-o', str(Path(directory) / 'out.o')]}
-                           for path in (source, CORE / 'src/kymo_protocol.cpp')]
+                           for path in (source, CORE / 'src/telemetry/kymo_protocol.cpp')]
                 reports = check_commands(entries)
                 self.assertEqual(reports[0]['values']['KYMO_ENABLED'], 0)
                 entries[1]['arguments'][3] = '-DKYMO_ENABLED=1'
