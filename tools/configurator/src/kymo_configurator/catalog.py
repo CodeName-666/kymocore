@@ -314,7 +314,7 @@ def _summary_project(view: View) -> str:
 
 
 def _summary_features(view: View) -> str:
-    on = [k for k in ("x", "z", "timestamp", "crc", "decoder", "cpp") if view.feature(k)]
+    on = [k for k in ("x", "z", "timestamp", "crc", "decoder", "parameters", "cpp") if view.feature(k)]
     api = tr("Init/Main runtime") if view.feature("runtime") else tr("no runtime")
     return api + (", " + ", ".join(on) if on else ", " + tr("scalar values only"))
 
@@ -446,6 +446,12 @@ SECTIONS: list[Section] = [
                 _feature("decoder", "Frame decoder on the MCU",
                          "Only needed when the microcontroller itself must read Kymo frames.",
                          "KYMO_ENABLE_DECODER", advanced=True),
+                _feature("parameters", "Parameters from KymoStudio (back channel)",
+                         "Lets KymoStudio change registered variables at run time; needs the frame decoder.",
+                         "KYMO_ENABLE_PARAMETERS",
+                         guided="Tick if you want to tune values such as controller gains or a setpoint "
+                                "from KymoStudio while measuring. You list them in your code with "
+                                "KYMO_PARAM; the firmware checks every value. Also tick the frame decoder."),
             )),
         ),
         guided_title="Which extras do you need?",

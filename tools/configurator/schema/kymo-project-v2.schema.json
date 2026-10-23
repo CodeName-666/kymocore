@@ -74,6 +74,9 @@
               },
               "cpp": {
                 "type": "boolean"
+              },
+              "parameters": {
+                "type": "boolean"
               }
             },
             "additionalProperties": false

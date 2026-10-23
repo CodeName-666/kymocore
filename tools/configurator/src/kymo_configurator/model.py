@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any
 
 FEATURES = ("runtime", "x", "z", "timestamp", "crc", "decoder", "cpp")
+# Added after schema 2 shipped: absent means off, so existing projects stay valid.
+OPTIONAL_FEATURES = ("parameters",)
 TRACE_FEATURES = ("enabled", "isr", "scheduler", "flow")
 GENERATOR_VERSION = "0.2.0"
 SCHEMA_VERSION = 2
@@ -20,7 +22,7 @@ def default_profile(enabled: bool, preset: str = "minimal") -> dict[str, Any]:
     profile = {
         "enabled": enabled,
         "preset": preset,
-        "features": {key: False for key in FEATURES},
+        "features": {key: False for key in FEATURES + OPTIONAL_FEATURES},
         "trace": {
             "enabled": False, "isr": False, "scheduler": False, "flow": False,
             "port": {"kind": "generic", "core_count": 1},

@@ -245,6 +245,15 @@ DE: dict[str, str] = {
         "Kaputte Frames werden dann verworfen statt falsch gezeichnet. Über ein kurzes USB-Kabel ist das "
         "meist nicht nötig.",
     "Frame decoder on the MCU": "Frame-Decoder auf dem Mikrocontroller",
+    "Parameters from KymoStudio (back channel)": "Parameter aus KymoStudio (Rückkanal)",
+    "Lets KymoStudio change registered variables at run time; needs the frame decoder.":
+        "KymoStudio darf angemeldete Variablen zur Laufzeit ändern; braucht den Frame-Decoder.",
+    "Tick if you want to tune values such as controller gains or a setpoint from KymoStudio while measuring. You list them in your code with KYMO_PARAM; the firmware checks every value. Also tick the frame decoder.":
+        "Ankreuzen, wenn du Werte wie Reglerverstärkungen oder einen Sollwert während der Messung aus "
+        "KymoStudio verstellen willst. Du trägst sie im Code mit KYMO_PARAM ein; die Firmware prüft jeden "
+        "Wert. Kreuze auch den Frame-Decoder an.",
+    "The parameter back channel needs the frame decoder": "Der Parameter-Rückkanal braucht den Frame-Decoder",
+    "Enable feature decoder as well.": "Aktiviere zusätzlich die Funktion decoder.",
     "Only needed when the microcontroller itself must read Kymo frames.":
         "Nur nötig, wenn der Mikrocontroller selbst Kymo-Frames lesen muss.",
     "Init/Main runtime": "Init/Main-Laufzeit",

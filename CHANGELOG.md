@@ -13,6 +13,8 @@
   (descriptor `0x60`, operation LIST) queues one description per parameter, sent with
   `KymoParam_NextDescription`, plus a readback of every current value.
 - `emb_bitset_clear` in `common/embedded_bits.h`.
+- Configurator: optional feature `parameters` (`KYMO_ENABLE_PARAMETERS`), checked to need the
+  frame decoder. Projects without the key stay valid and keep it off; schema 2 is unchanged.
 
 ## 7.0.0 - 2026-10-18
 
