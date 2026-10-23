@@ -109,6 +109,30 @@ static void apply_request(KymoParamReceiver *receiver)
 }
 
 /*******************************************************************************
+ * apply_write
+ ******************************************************************************/
+/* One validated write: registered ID and a value within the limits. */
+static size_t apply_write(KymoParamReceiver *receiver, uint8_t id, float value)
+{
+    size_t applied = 0u;
+    const size_t index = find_index(receiver, id);
+    if (index == receiver->count) {
+        ++receiver->rejected;
+    } else {
+        const KymoParameter *entry = &receiver->table[index];
+        if ((value >= entry->minimum) && (value <= entry->maximum)) {
+            *entry->target = value;
+            ++receiver->accepted;
+            applied = 1u;
+        } else {
+            ++receiver->rejected;
+        }
+        (void)emb_bitset_set(receiver->pending, sizeof(receiver->pending), index);
+    }
+    return applied;
+}
+
+/*******************************************************************************
  * apply_frame
  ******************************************************************************/
 /* A write must be CRC-protected and carry only an ID and a value. */
@@ -121,20 +145,7 @@ static size_t apply_frame(KymoParamReceiver *receiver)
     } else if (!emb_u8_has_any(receiver->frame[2], KYMO_DESCRIPTOR_NO_CRC) &&
         (KymoProtocol_Decode(receiver->frame, receiver->length, &point) == KYMO_OK) &&
         (point.flags == 0u)) {
-        const size_t index = find_index(receiver, point.id);
-        if (index == receiver->count) {
-            ++receiver->rejected;
-        } else {
-            const KymoParameter *entry = &receiver->table[index];
-            if ((point.value >= entry->minimum) && (point.value <= entry->maximum)) {
-                *entry->target = point.value;
-                ++receiver->accepted;
-                applied = 1u;
-            } else {
-                ++receiver->rejected;
-            }
-            (void)emb_bitset_set(receiver->pending, sizeof(receiver->pending), index);
-        }
+        applied = apply_write(receiver, point.id, point.value);
     } else {
         ++receiver->invalid;
     }
@@ -207,6 +218,23 @@ size_t KymoParam_Feed(KymoParamReceiver *receiver, const uint8_t *bytes, size_t 
     if ((receiver != nullptr) && (receiver->table != nullptr) && (bytes != nullptr)) {
         for (size_t offset = 0u; offset < length; ++offset) {
             applied += feed_byte(receiver, bytes[offset]);
+        }
+    }
+    return applied;
+}
+
+/*******************************************************************************
+ * KymoParam_FeedCompact
+ ******************************************************************************/
+size_t KymoParam_FeedCompact(KymoParamReceiver *receiver, const uint8_t *data, size_t length)
+{
+    size_t applied = 0u;
+    if ((receiver != nullptr) && (receiver->table != nullptr) && (data != nullptr)) {
+        const float value = (length == KYMO_PARAM_COMPACT_SIZE) ? emb_read_f32_le(data + 1) : 0.0f;
+        if ((length == KYMO_PARAM_COMPACT_SIZE) && isfinite(value)) {
+            applied = apply_write(receiver, data[0], value);
+        } else {
+            ++receiver->invalid;
         }
     }
     return applied;

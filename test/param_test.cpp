@@ -248,6 +248,33 @@ static void testDiscovery(void)
 }
 
 /*******************************************************************************
+ * testCompact
+ ******************************************************************************/
+static void testCompact(void)
+{
+    KymoParamReceiver receiver;
+    KymoDataPoint point;
+    /* KymoStudio's CAN write of parameter 7 = 1.0: id, then 1.0f little endian. */
+    const uint8_t write[KYMO_PARAM_COMPACT_SIZE] = { 7u, 0x00u, 0x00u, 0x80u, 0x3Fu };
+    const uint8_t outside[KYMO_PARAM_COMPACT_SIZE] = { 7u, 0x00u, 0x00u, 0x40u, 0x41u };  /* 12.0 */
+    const uint8_t unknown[KYMO_PARAM_COMPACT_SIZE] = { 55u, 0x00u, 0x00u, 0x80u, 0x3Fu };
+    const uint8_t notFinite[KYMO_PARAM_COMPACT_SIZE] = { 7u, 0x00u, 0x00u, 0xC0u, 0x7Fu }; /* NaN */
+    resetValues(&receiver);
+    sKp = 3.0f;
+    assert(KymoParam_FeedCompact(&receiver, write, sizeof(write)) == 1u);
+    assert((sKp == 1.0f) && (KymoParam_NextReadback(&receiver, &point) == KYMO_OK) && (point.id == 7u));
+    assert(KymoParam_FeedCompact(&receiver, outside, sizeof(outside)) == 0u);
+    assert((sKp == 1.0f) && (receiver.rejected == 1u) && (KymoParam_NextReadback(&receiver, &point) == KYMO_OK));
+    assert(KymoParam_FeedCompact(&receiver, unknown, sizeof(unknown)) == 0u);
+    assert((receiver.rejected == 2u) && (KymoParam_NextReadback(&receiver, &point) == KYMO_IDLE));
+    assert(KymoParam_FeedCompact(&receiver, notFinite, sizeof(notFinite)) == 0u);
+    assert(KymoParam_FeedCompact(&receiver, write, 4u) == 0u);
+    assert(receiver.invalid == 2u);
+    assert(KymoParam_FeedCompact(nullptr, write, sizeof(write)) == 0u);
+    assert(KymoParam_FeedCompact(&receiver, nullptr, 5u) == 0u);
+}
+
+/*******************************************************************************
  * main
  ******************************************************************************/
 int main(void)
@@ -257,6 +284,7 @@ int main(void)
     testRefusedWrites();
     testResynchronization();
     testDiscovery();
+    testCompact();
     printf("parameter back channel: PASS\n");
     return 0;
 }

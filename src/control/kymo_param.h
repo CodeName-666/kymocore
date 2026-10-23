@@ -95,6 +95,15 @@ extern "C" {
 #define KYMO_PARAM_OP_DESCRIPTION 0x02u
 
 /**
+ * @brief Size of a compact write: parameter ID (u8) and value (f32 LE).
+ * @details For links whose own framing and checksum carry the message, such as a
+ * classic CAN data field of up to 8 bytes. See KymoParam_FeedCompact.
+ * @par Usage
+ * Check the received data length against it before calling KymoParam_FeedCompact.
+ */
+#define KYMO_PARAM_COMPACT_SIZE 5u
+
+/**
  * @brief Longest parameter name in bytes, without terminator.
  * @details KymoParam_Init rejects longer names.
  * @par Usage
@@ -241,6 +250,25 @@ KymoStatus KymoParam_Init(KymoParamReceiver *receiver, const KymoParameter *tabl
  * Feed whatever a non-blocking read returned, then drain KymoParam_NextReadback.
  */
 size_t KymoParam_Feed(KymoParamReceiver *receiver, const uint8_t *bytes, size_t length);
+
+/**
+ * @brief Apply one compact write received over a link with its own framing (e.g. CAN).
+ *
+ * @details @p data is exactly KYMO_PARAM_COMPACT_SIZE bytes: parameter ID, then the
+ * value as little-endian binary32. The link (CAN) provides framing and checksum, so
+ * there is no sync, descriptor or CRC. The same rules as KymoParam_Feed apply:
+ * registered ID, finite value inside the limits, readback queued for accepted and
+ * out-of-range writes. A wrong length or a non-finite value counts as invalid.
+ * Parameter discovery is not available this way; the host defines such parameters.
+ * @param[in,out] receiver Initialized receiver; NULL or uninitialized input is ignored.
+ * @param[in] data Received data field; NULL is ignored.
+ * @param[in] length Its length; must be KYMO_PARAM_COMPACT_SIZE.
+ * @return 1 when the write was applied, otherwise 0.
+ * @par Usage
+ * In the CAN receive path, with app_param_can_id the tx_id configured in KymoStudio:
+ * if (msg.id == app_param_can_id) KymoParam_FeedCompact(&receiver, msg.data, msg.len);
+ */
+size_t KymoParam_FeedCompact(KymoParamReceiver *receiver, const uint8_t *data, size_t length);
 
 /**
  * @brief Take the next due readback.

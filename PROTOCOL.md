@@ -274,8 +274,16 @@ Parameter IDs share the channel ID space with measurements. Firmware should pick
 IDs its measurement channels do not use, so readbacks are distinguishable.
 
 Transports: Serial/USB, TCP and UDP carry the frames unchanged (UDP replies go
-to the last sender). MQTT publishes them on the configured `tx_topic`. Classic
-CAN cannot carry them; CAN-FD can.
+to the last sender). MQTT publishes them on the configured `tx_topic`.
+
+CAN uses a compact write instead, because a classic data field holds 8 bytes:
+arbitration ID = the connection's configured `tx_id`, data = parameter ID (u8)
+followed by the value as little-endian binary32 (5 bytes); CAN's own framing and
+CRC replace sync, descriptor and CRC-8. The firmware hands the data field to
+`KymoParam_FeedCompact`, which applies the same rules. The readback is an ordinary
+CAN measurement whose arbitration ID is the parameter ID. Discovery does not fit
+into 8 bytes, so parameters on CAN are defined in the host. Golden vector, write
+parameter 7 = 1.0: `07 00 00 80 3f`.
 
 Reserved for later: an address-based write (parameters derived from an ELF
 symbol table) uses descriptor `0x61`, so the frames above keep their meaning. It
