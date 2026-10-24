@@ -1,0 +1,24 @@
+name: Publish to the ESP Component Registry
+# Runs for release tags vX.Y.Z; the version comes from idf_component.yml.
+# One-time setup on components.espressif.com: see PUBLISHING.md.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+jobs:
+  upload:
+    # Enabled by the repository variable ESP_REGISTRY_UPLOAD=true after the setup.
+    if: vars.ESP_REGISTRY_UPLOAD == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Release tag matches idf_component.yml
+        if: github.ref_type == 'tag'
+        run: grep -qx "version: \"${GITHUB_REF_NAME#v}\"" idf_component.yml
+      - uses: espressif/upload-components-ci-action@v2.2.1
+        with:
+          components: "kymocore: ."
+          namespace: "codename-666"

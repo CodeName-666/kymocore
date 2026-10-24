@@ -55,6 +55,8 @@ def check_archive(archive, destination):
                       if "=" in line)
     assert manifest["name"] == properties["name"] == "KymoCore"
     assert manifest["version"] == properties["version"]
+    idf = re.search(r'^version: "([^"]+)"$', (LIB / "idf_component.yml").read_text(encoding="utf-8"), re.M)
+    assert idf and idf.group(1) == manifest["version"], "idf_component.yml version differs from library.json"
     assert len(manifest["description"]) <= 255
     required = ["LICENSE", "COMMERCIAL.md", "COMMERCIAL.de.md", "CONTRIBUTING.md", "CONTRIBUTING.de.md", "CHANGELOG.md", "PUBLISHING.md", "README.md", "README.de.md", "PROTOCOL.md", "docs/GUIDE.md", "docs/GUIDE.de.md",
                 "examples/basic/main.cpp", "examples/basic/README.md",

@@ -1,0 +1,29 @@
+name: Registries
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  arduino-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # Switch library-manager to "update" once KymoCore is in the Library Manager index.
+      - uses: arduino/arduino-lint-action@v3.0.0
+        with:
+          library-manager: submit
+          compliance: strict
+  esp-idf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build the ESP-IDF example against this checkout
+        uses: espressif/esp-idf-ci-action@v1.2.0
+        with:
+          esp_idf_version: v5.4
+          target: esp32
+          path: examples/esp_idf/uart_telemetry
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Pack the component archive
+        run: |
+          pip install idf-component-manager
+          compote component pack --name kymocore

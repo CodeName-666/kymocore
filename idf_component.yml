@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# ESP Component Registry manifest. Keep version equal to library.json and
+# library.properties (tools/test_package.py checks it). Upload: PUBLISHING.md.
+version: "6.4.0"
+description: "Portable heap-free C++11 telemetry and opt-in execution tracing for KymoStudio: compact binary frames over UART, USB, TCP, UDP or MQTT through application callbacks."
+url: "https://kymotrace.de/kymocore.html"
+repository: "https://github.com/CodeName-666/kymocore.git"
+documentation: "https://github.com/CodeName-666/kymocore/blob/main/docs/GUIDE.md"
+issues: "https://github.com/CodeName-666/kymocore/issues"
+license: "GPL-3.0-only"
+maintainers:
+  - "Christof Seidel <kontakt@kymotrace.de>"
+tags:
+  - telemetry
+  - tracing
+  - plotting
+  - binary-protocol
+  - sensor
+  - uart
+  - mqtt
+dependencies:
+  idf: ">=5.0"
+files:
+  exclude:
+    - ".github/**/*"
+    - "test/**/*"
+    - "tools/**/*"
+    - "**/.pio/**/*"
+    - "**/.vscode/**/*"
+    - "**/__pycache__/**/*"

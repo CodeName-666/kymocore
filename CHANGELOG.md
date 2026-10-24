@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Add an ESP-IDF component manifest (`idf_component.yml`, root `CMakeLists.txt`) for the
+  ESP Component Registry and a plain ESP-IDF example, `examples/esp_idf/uart_telemetry`.
+- CI lints the library for the Arduino Library Manager and builds the ESP-IDF example;
+  release tags can upload to the ESP Component Registry once it is set up (PUBLISHING.md).
+- Library code, API and wire behavior are unchanged.
+
 ## 6.4.0 - 2026-10-15
 
 - Add `KYMO_FLAG_TIMESTAMP_US` (descriptor bit 4, data message type 01): the timestamp
