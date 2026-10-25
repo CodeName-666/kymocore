@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (7.1.0)
+## 7.1.0 - 2026-10-25
 
 - Back channel: `control/kymo_param.h` lets the host write registered float
   parameters with ordinary CRC-protected DATA frames (`KYMO_ENABLE_PARAMETERS`,
@@ -18,7 +18,7 @@
 - Configurator: optional feature `parameters` (`KYMO_ENABLE_PARAMETERS`), checked to need the
   frame decoder. Projects without the key stay valid and keep it off; schema 2 is unchanged.
 
-## 7.0.0 - 2026-10-18
+## 7.0.0 - 2026-10-18 (not tagged; published together with 7.1.0)
 
 Restructured for a simpler start. The wire format (protocol v6.2, wire version 1)
 and the feature set are unchanged; the API and file layout change. See

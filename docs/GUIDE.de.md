@@ -68,7 +68,7 @@ board = esp32dev
 framework = arduino
 monitor_speed = 115200
 lib_deps =
-    codename666/KymoCore @ 7.0.0
+    codename666/KymoCore @ 7.1.0
 ```
 
 Für Uno stattdessen `platform = atmelavr@5.3.0` und `board = uno` setzen.
@@ -79,20 +79,20 @@ legt die Version fest:
 
 ```ini
 lib_deps =
-    https://github.com/CodeName-666/kymocore.git#v7.0.0
+    https://github.com/CodeName-666/kymocore.git#v7.1.0
 ```
 
 Alternativ aus diesem Repository ein Paket bauen:
 
 ```sh
-pio pkg pack . -o KymoCore-7.0.0.tar.gz
+pio pkg pack . -o KymoCore-7.1.0.tar.gz
 ```
 
 Das Archiv in das eigene Projekt kopieren und dort eintragen:
 
 ```ini
 lib_deps =
-    file://KymoCore-7.0.0.tar.gz
+    file://KymoCore-7.1.0.tar.gz
 ```
 
 Alternativ den vollständigen Library-Ordner nach `lib/KymoCore` des eigenen
@@ -292,7 +292,7 @@ Teilframes dürfen andere Produzenten keine Bytes in denselben Stream mischen.
 
 ![Framefelder, Descriptorbits und konkrete Wire-Beispiele](images/protocol.png)
 
-Paketversion 7.0.0, Protokoll v6.2 und **Wire-Version 1** sind unterschiedliche
+Paketversion 7.1.0, Protokoll v6.2 und **Wire-Version 1** sind unterschiedliche
 Angaben. Der normative Vertrag steht in [PROTOCOL.md](../PROTOCOL.md).
 
 | Offset | Größe | Inhalt |
@@ -428,8 +428,9 @@ Die Library liefert Telemetrie; die App übernimmt Empfang und Visualisierung.
 4. Zunächst die bekannte Beispielwellenform prüfen, dann Sensoren anbinden.
 
 Das Protokoll überträgt keine Kanalnamen, Einheiten oder Sensorkonfigurationen.
-Diese Zuordnung bleibt bei Anwendung und App. Ein Rückkanal für Steuerbefehle
-ist nicht Teil von v6.2. Legacy-JSON kann die App zusätzlich empfangen;
+Diese Zuordnung bleibt bei Anwendung und App. Seit 7.1 lässt der optionale
+Parameter-Rückkanal (`KYMO_ENABLE_PARAMETERS`, siehe [PROTOCOL.md](../PROTOCOL.md))
+den Host registrierte Parameter schreiben. Legacy-JSON kann die App zusätzlich empfangen;
 KymoCore kodiert binär.
 
 ## Paketstruktur und Prüfung
