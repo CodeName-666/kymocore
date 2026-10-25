@@ -17,6 +17,10 @@
   its own framing such as CAN; same rules as `KymoParam_Feed`, no discovery.
 - Configurator: optional feature `parameters` (`KYMO_ENABLE_PARAMETERS`), checked to need the
   frame decoder. Projects without the key stay valid and keep it off; schema 2 is unchanged.
+- ESP-IDF component manifest (`idf_component.yml`, root `CMakeLists.txt`) for the
+  ESP Component Registry and a plain ESP-IDF example, `examples/esp_idf/uart_telemetry`.
+- CI lints the library for the Arduino Library Manager and builds the ESP-IDF example;
+  release tags can upload to the ESP Component Registry once it is set up (PUBLISHING.md).
 
 ## 7.0.0 - 2026-10-18 (not tagged; published together with 7.1.0)
 

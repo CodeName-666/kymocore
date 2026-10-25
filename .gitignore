@@ -10,3 +10,10 @@ __pycache__/
 .pytest_cache/
 *.pyc
 *.egg-info/
+
+# ESP-IDF example outputs
+examples/esp_idf/**/build/
+examples/esp_idf/**/managed_components/
+examples/esp_idf/**/sdkconfig
+examples/esp_idf/**/sdkconfig.old
+examples/esp_idf/**/dependencies.lock

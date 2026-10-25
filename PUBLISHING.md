@@ -106,6 +106,53 @@ Registry-Auslieferung zusätzlich zum bereits geprüften lokalen Archiv.
 Hardwaretests sind gesondert nötig: Flashen, Live-Übertragung, DMA/IRQ, USB und
 Broker-Verbindungen sind keine Folgen eines erfolgreichen Compile-Tests.
 
+## Arduino Library Manager
+
+Der Library Manager liest `library.properties` und indiziert jeden Git-Tag,
+dessen `library.properties`-Version zum Tag passt. Ein eigener Upload entfällt.
+
+- Prüfung: `arduino-lint --library-manager submit --compliance strict` mit
+  absolutem Pfad zum Repository. Der Workflow `registries.yml` führt sie bei
+  jedem Push aus. Stand 6.4.0: 0 Fehler, 1 Warnung (kein `KymoCore.h`).
+- Einmalige Anmeldung: Fork von
+  [arduino/library-registry](https://github.com/arduino/library-registry),
+  in `repositories.txt` die Zeile `https://github.com/CodeName-666/kymocore`
+  ergänzen und einen Pull Request öffnen. Der Registry-Bot prüft automatisch und
+  merged ohne Rückfragen, wenn alles passt; Meldungen erscheinen im Pull Request.
+- Nach der Aufnahme in `registries.yml` `library-manager: update` setzen. Der
+  Name `KymoCore` darf danach nicht mehr geändert werden.
+- Neue Versionen: Version in `library.properties` erhöhen und Tag `vX.Y.Z`
+  pushen. Der Index aktualisiert sich innerhalb etwa eines Tages.
+
+## ESP Component Registry
+
+`idf_component.yml` und das Wurzel-`CMakeLists.txt` machen das Repository zu einer
+ESP-IDF-Komponente (`codename-666/kymocore`, ab ESP-IDF 5.0). Das Beispiel
+`examples/esp_idf/uart_telemetry` baut gegen den lokalen Stand; der Workflow
+`registries.yml` baut es mit ESP-IDF 5.4 und packt das Komponentenarchiv.
+Lokal funktioniert das nur, wenn der Repository-Ordner `kymocore` heißt: ESP-IDF
+benennt eine Komponente aus `override_path` nach ihrem Ordner, in `KymoCore`
+schlägt der Build mit „unknown name“ fehl. Für den Test daher
+`git clone https://github.com/CodeName-666/kymocore.git` verwenden.
+
+Einmalige Einrichtung:
+
+1. Auf [components.espressif.com](https://components.espressif.com) mit GitHub
+   anmelden und den Namespace prüfen. Weicht er von `codename-666` ab, ihn in
+   `.github/workflows/publish-idf.yml`, im Beispiel-`idf_component.yml` und in
+   dieser Datei anpassen.
+2. Unter **Permissions** die Komponente `kymocore` anlegen und als Trusted
+   Uploader dieses Repository mit dem Workflow `publish-idf.yml` eintragen (OIDC,
+   kein Token-Secret nötig).
+3. Im GitHub-Repository die Variable `ESP_REGISTRY_UPLOAD` auf `true` setzen.
+4. Ersten Upload über **Actions → Publish to the ESP Component Registry → Run
+   workflow** starten. Danach lädt jeder Tag `vX.Y.Z` hoch; der Workflow prüft,
+   dass Tag und `idf_component.yml` übereinstimmen.
+
+Wie bei PlatformIO ist jede Version unveränderlich. Die Versionen in
+`library.json`, `library.properties` und `idf_component.yml` müssen gleich sein
+(`test_package.py` prüft das).
+
 ## Offizielle Referenzen
 
 - [Library-Struktur und Veröffentlichung](https://docs.platformio.org/en/latest/librarymanager/creating.html)
@@ -113,4 +160,7 @@ Broker-Verbindungen sind keine Folgen eines erfolgreichen Compile-Tests.
 - [Kurzbeschreibung bis 255 Zeichen](https://docs.platformio.org/en/latest/manifests/library-json/fields/description.html)
 - [Paket packen](https://docs.platformio.org/en/latest/core/userguide/pkg/cmd_pack.html)
 - [Veröffentlichen und unveränderliche Versionen](https://docs.platformio.org/en/latest/core/userguide/pkg/cmd_publish.html)
+- [Arduino Library Manager: Anmeldung](https://github.com/arduino/library-registry/blob/main/FAQ.md)
+- [Arduino-Library-Spezifikation](https://arduino.github.io/arduino-cli/latest/library-specification/)
+- [ESP Component Registry: Komponente veröffentlichen](https://docs.espressif.com/projects/idf-component-manager/en/latest/guides/packaging_components.html)
 - [KymoStudio](https://kymotrace.de/#download)
