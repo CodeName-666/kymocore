@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 7.2.0 - 2026-10-29
 
 - License: KymoCore is now MIT-licensed (`SPDX-License-Identifier: MIT`) instead of
   GPLv3 or a commercial license; COMMERCIAL.md is gone. Earlier releases keep the
