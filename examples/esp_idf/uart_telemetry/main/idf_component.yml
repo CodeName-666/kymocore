@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 # Inside the repository the example builds the local KymoCore; a project
 # created from the registry fetches the published component instead.
 dependencies:

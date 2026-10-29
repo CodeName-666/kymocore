@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """German user interface texts, keyed by the English original.
 
 Keep ``{placeholders}`` identical; tests/test_i18n.py checks that every visible

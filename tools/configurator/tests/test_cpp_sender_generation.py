@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """Build generated CPP-only wiring against KymoCore's actual C++ API."""
 import os
 from pathlib import Path

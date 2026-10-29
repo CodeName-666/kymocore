@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+/* SPDX-License-Identifier: MIT
  * Copyright (c) 2026 Christof Seidel */
 /** @file kymo_trace_protocol.cpp @brief Fieldwise trace protocol encoding. */
 #include "kymo_trace_protocol.h"

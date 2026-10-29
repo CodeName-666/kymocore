@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """Trace protocol metadata and dictionary generation tests."""
 from __future__ import annotations
 

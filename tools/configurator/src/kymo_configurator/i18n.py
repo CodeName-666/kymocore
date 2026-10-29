@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """User interface language.
 
 English text is the key: ``tr("Step {n} of {total}", n=1, total=6)`` returns the

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """Custom section widgets and their registry.
 
 A section names custom widgets in ``Section.widgets``; this registry maps the

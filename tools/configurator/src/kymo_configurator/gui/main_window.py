@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """Main window: start page, guided mode and professional mode on one session."""
 from __future__ import annotations
 

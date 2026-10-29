@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 # ESP Component Registry manifest. Keep version equal to library.json and
 # library.properties (tools/test_package.py checks it). Upload: PUBLISHING.md.
 version: "7.1.0"
@@ -7,7 +7,7 @@ url: "https://kymotrace.de/kymocore.html"
 repository: "https://github.com/CodeName-666/kymocore.git"
 documentation: "https://github.com/CodeName-666/kymocore/blob/main/docs/GUIDE.md"
 issues: "https://github.com/CodeName-666/kymocore/issues"
-license: "GPL-3.0-only"
+license: "MIT"
 maintainers:
   - "Christof Seidel <kontakt@kymotrace.de>"
 tags:

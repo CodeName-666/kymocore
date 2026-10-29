@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """Qt-free checks for the setting catalog, presets, migration and extension hooks."""
 import copy
 import unittest

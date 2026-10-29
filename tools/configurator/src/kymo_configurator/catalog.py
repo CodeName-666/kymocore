@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """Declarative description of every configurable setting.
 
 The catalog is the single source for both GUI modes: the professional editor

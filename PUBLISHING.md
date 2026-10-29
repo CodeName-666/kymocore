@@ -72,10 +72,7 @@ keine Abhängigkeit der Library oder des Paketchecks.
    Ein einmal veröffentlichtes Name-/Versionspaar lässt sich nicht erneut
    verwenden, auch nicht nach dem Löschen. Bei Bedarf beide Manifeste,
    Installationsbeispiele und Changelog auf eine neue Version setzen.
-3. Lizenz ist `GPL-3.0-only OR LicenseRef-KymoCore-Commercial` (siehe
-   COMMERCIAL.md). Im Manifest steht nur `GPL-3.0-only`, weil der
-   PlatformIO-Validator ausschließlich Kennungen der SPDX-Liste akzeptiert. Die
-   kommerzielle Option ist in COMMERCIAL.md, README und den Quelldateien angegeben. Vor Veröffentlichung sicherstellen, dass alle Quellen eine
+3. Lizenz ist `MIT` (LICENSE), im Manifest ebenso. Vor Veröffentlichung sicherstellen, dass alle Quellen eine
    SPDX-Zeile tragen und für jeden fremden Beitrag die Rechteeinräumung aus
    CONTRIBUTING.md vorliegt.
 4. Änderungen reviewen, gezielt committen und in diesem Repository pushen.

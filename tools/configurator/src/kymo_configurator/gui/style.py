@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """Application stylesheet: calm colours, clear hierarchy, readable help text."""
 
 STYLE = """

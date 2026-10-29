@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """Read-only GCC/Clang configuration audit of compile_commands argument arrays.
 
 This reproduces preprocessing, not the provenance of an existing object. Always

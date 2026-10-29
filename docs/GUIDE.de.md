@@ -439,8 +439,7 @@ KymoCore kodiert binär.
 KymoCore/
   library.json             PlatformIO-Metadaten und Exportumfang
   library.properties       Arduino-Metadaten
-  LICENSE                  GPLv3-Lizenztext
-  COMMERCIAL.md            Doppellizenz: GPLv3 oder kommerziell
+  LICENSE                  MIT-Lizenztext
   CONTRIBUTING.md          Beiträge und Rechteeinräumung
   README.md                Übersicht und Schnellstart (Englisch, README.de.md Deutsch)
   PROTOCOL.md              Normativer Wire-Vertrag

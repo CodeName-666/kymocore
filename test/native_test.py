@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 #!/usr/bin/env python3
 """Host-native KymoCore test suite: build and run every test in several builds.
 

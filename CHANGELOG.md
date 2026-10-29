@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- License: KymoCore is now MIT-licensed (`SPDX-License-Identifier: MIT`) instead of
+  GPLv3 or a commercial license; COMMERCIAL.md is gone. Earlier releases keep the
+  license they were published with. No change to code, API or protocol.
+
 ## 7.1.0 - 2026-10-25
 
 - Back channel: `control/kymo_param.h` lets the host write registered float
@@ -123,7 +129,7 @@ and the feature set are unchanged; the API and file layout change. See
 ## 6.2.0
 
 - **Lizenzwechsel:** KymoCore ist ab dieser Version doppelt lizenziert:
-  GPLv3 oder kommerzielle Lizenz (`GPL-3.0-only OR LicenseRef-KymoCore-Commercial`).
+  GPLv3 oder kommerzielle Lizenz (`MIT`).
   Siehe COMMERCIAL.md. Versionen bis einschließlich 6.1.0 bleiben MIT-lizenziert.
 - Alle Quelldateien tragen eine SPDX-Kennung und den Copyright-Vermerk.
 - CONTRIBUTING.md beschreibt die Rechteeinräumung für Beiträge.

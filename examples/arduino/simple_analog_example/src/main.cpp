@@ -1,3 +1,3 @@
-/* SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+/* SPDX-License-Identifier: MIT
  * Copyright (c) 2026 Christof Seidel */
 #include "../simple_analog_example.ino"

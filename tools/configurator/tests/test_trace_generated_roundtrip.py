@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """Compile and execute generated shared-v2 trace wiring against KymoCore."""
 import os
 from pathlib import Path

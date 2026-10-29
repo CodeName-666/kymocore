@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 #!/usr/bin/env python3
 """Structural check: every C/C++ function has at most one final return.
 

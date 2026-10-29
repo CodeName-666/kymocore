@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """Use-case presets that mirror the KymoCore 7.0 KYMO_PROFILE values.
 
 A preset only fills feature defaults of one configurator profile; every value can

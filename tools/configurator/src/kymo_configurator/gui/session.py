@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """Shared editing state for both GUI modes.
 
 Both the guided and the professional mode edit the same ProjectSession, so

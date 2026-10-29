@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """Guided mode: one question per step, advanced settings keep defaults.
 
 The steps are the catalog sections that apply to the current goal; for

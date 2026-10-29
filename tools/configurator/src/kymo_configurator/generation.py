@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """Deterministic immutable generation snapshots with a single atomic selector."""
 from __future__ import annotations
 import hashlib, json, os, shutil, tempfile

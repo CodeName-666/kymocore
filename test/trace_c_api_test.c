@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial */
+/* SPDX-License-Identifier: MIT */
 #include <string.h>
 #include "KymoCore.h"
 static uint64_t clockRead(void *user){(void)user;return 0u;}

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """Behavioral checks for publication, validation and damaged snapshot recovery."""
 import copy
 import json

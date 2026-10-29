@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """Stable, field-addressable validation shared by CLI and GUI."""
 from __future__ import annotations
 import re

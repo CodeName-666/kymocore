@@ -18,7 +18,7 @@
 
 <p align="center">
   <img alt="Version 7.1.0" src="https://img.shields.io/badge/version-7.1.0-7C5CFF">
-  <img alt="License GPLv3 or commercial" src="https://img.shields.io/badge/License-GPLv3%20%7C%20commercial-15123A">
+  <img alt="License MIT" src="https://img.shields.io/badge/License-MIT-15123A">
   <img alt="C++11 with C API" src="https://img.shields.io/badge/C%2B%2B11-C--API-A78BFA">
   <img alt="Platforms" src="https://img.shields.io/badge/Arduino%20%C2%B7%20ESP32%20%C2%B7%20STM32-PlatformIO-FDE047">
 </p>
@@ -223,12 +223,8 @@ The complete specification with example frames is in [PROTOCOL.md](PROTOCOL.md).
 
 ## License
 
-Copyright (c) 2026 Christof Seidel. KymoCore is dual-licensed:
-
-- **GPLv3** ([LICENSE](LICENSE)) is free of charge, for example for hobby,
-  tinkering, learning and open-source projects.
-- A **commercial license** is required to distribute firmware or devices with
-  KymoCore without disclosing your own source code under the GPLv3.
-
-Details and contact are in [COMMERCIAL.md](COMMERCIAL.md). Versions up to and
-including 6.1.0 remain under the MIT license.
+Copyright (c) 2026 Christof Seidel. KymoCore is licensed under the
+[MIT license](LICENSE): free for any use, including commercial firmware and
+devices, without disclosing your own source code. Each release keeps the license
+it was published with: 6.2.0 to 7.1.0 under GPLv3 or a commercial license, up to
+6.1.0 under MIT.

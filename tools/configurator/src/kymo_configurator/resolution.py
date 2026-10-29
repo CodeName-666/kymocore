@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 from __future__ import annotations
 from typing import Any
 from .model import FEATURES, OPTIONAL_FEATURES

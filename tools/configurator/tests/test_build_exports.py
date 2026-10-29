@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """Compile generated snapshots with the real C/C++ toolchain, including overrides."""
 import os
 from pathlib import Path

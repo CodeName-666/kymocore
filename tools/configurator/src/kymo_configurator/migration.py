@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """Explicit schema migration entry point; preserves unknown/user data."""
 from __future__ import annotations
 import copy

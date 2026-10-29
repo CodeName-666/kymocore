@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """Small JSON model helpers. The source document remains a plain versioned dict."""
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 #!/usr/bin/env python3
 """Compile-time contract tests for KymoCore's global gate and macro facade."""
 from pathlib import Path

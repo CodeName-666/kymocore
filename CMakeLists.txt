@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 # ESP-IDF component build (ESP Component Registry, see idf_component.yml).
 # PlatformIO and the Arduino IDE ignore this file; plain CMake projects add
 # src/*.cpp themselves (see docs/GUIDE.md).

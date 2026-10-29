@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """Generic editors that render catalog fields.
 
 Every editor shows the label, the plain-language explanation, the C macro or

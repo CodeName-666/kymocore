@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial
+# SPDX-License-Identifier: MIT
 """Build integrations pinned to the immutable directory containing this export.
 
 No export consults the active selector during compilation. Include the selected

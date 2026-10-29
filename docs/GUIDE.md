@@ -439,8 +439,7 @@ JSON; KymoCore encodes binary.
 KymoCore/
   library.json             PlatformIO metadata and export scope
   library.properties       Arduino metadata
-  LICENSE                  GPLv3 license text
-  COMMERCIAL.md            Dual licensing: GPLv3 or commercial
+  LICENSE                  MIT license text
   CONTRIBUTING.md          Contributions and grant of rights
   README.md                Overview and quick start
   PROTOCOL.md              Normative wire contract

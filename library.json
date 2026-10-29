@@ -24,7 +24,7 @@
     "type": "git",
     "url": "https://github.com/CodeName-666/kymocore.git"
   },
-  "license": "GPL-3.0-only",
+  "license": "MIT",
   "homepage": "https://kymotrace.de",
   "frameworks": "*",
   "platforms": "*",
@@ -67,8 +67,6 @@
       "docs/TRACE_PROTOCOL.md",
       "tools/configurator",
       "LICENSE",
-      "COMMERCIAL.md",
-      "COMMERCIAL.de.md",
       "CONTRIBUTING.md",
       "CONTRIBUTING.de.md",
       "CHANGELOG.md",

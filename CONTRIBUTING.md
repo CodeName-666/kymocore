@@ -6,9 +6,9 @@ Contributions are welcome: bug reports, suggestions and pull requests.
 
 ## Grant of rights for pull requests
 
-KymoCore is offered under the GPLv3 **and** under a commercial license (see
-[COMMERCIAL.md](COMMERCIAL.md)). So that both licenses can also cover submitted
-code, a pull request is only accepted with the following assurance:
+KymoCore is offered under the MIT license (see [LICENSE](LICENSE)). So that the
+project can keep its license choices open for submitted code, a pull request is
+only accepted with the following assurance:
 
 > By submitting a contribution I confirm that
 >
@@ -16,8 +16,8 @@ code, a pull request is only accepted with the following assurance:
 >    that it does not infringe any third-party rights;
 > 2. I grant Christof Seidel a worldwide, perpetual, irrevocable, non-exclusive
 >    and royalty-free right to use, modify, reproduce and distribute the
->    contribution, and to sublicense it under the GPLv3 as well as under any
->    other licenses, including commercial ones.
+>    contribution, and to sublicense it under the MIT license as well as under
+>    any other licenses.
 >
 > I retain my copyright in the contribution.
 
@@ -30,7 +30,7 @@ If the English and German versions differ, the German version prevails.
 ## Technical notes
 
 - New source files start with the SPDX line
-  `SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial`.
+  `SPDX-License-Identifier: MIT`.
 - The full tests run in the firmware
   [kymoprobe](https://github.com/CodeName-666/kymoprobe), see
   [README.md](README.md).

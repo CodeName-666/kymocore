@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only OR LicenseRef-KymoCore-Commercial */
+/* SPDX-License-Identifier: MIT */
 #include <assert.h>
 #include <string.h>
 #include <type_traits>
